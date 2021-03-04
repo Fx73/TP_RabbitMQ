@@ -142,7 +142,7 @@ class Frame extends JFrame {
 	private final JTextPane usersconnected = new JTextPane();
 
 	private Frame(String target) {
-		super("RMI Chat : "+target);
+		super("RabbitMQ Chat : "+target);
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setPreferredSize(new Dimension(1000,600));

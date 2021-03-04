@@ -2,9 +2,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
-import org.apache.commons.lang3.SerializationUtils;
 
-import java.io.Serializable;
 import java.util.concurrent.TimeUnit;
 
 public class RMQTools {
@@ -44,6 +42,15 @@ public class RMQTools {
 
         try {
             channel.queueDeclare(queuename, durable, exclusive, autoDelete, null);
+        }
+        catch (Exception e){
+            System.out.println("Erreur de creation de queue " + queuename + " sur le channel : "+ e.getMessage());
+        }
+    }
+
+    public static void deleteQueue(Channel channel, String queuename){
+        try {
+            channel.queueDelete(queuename);
         }
         catch (Exception e){
             System.out.println("Erreur de creation de queue " + queuename + " sur le channel : "+ e.getMessage());
@@ -97,34 +104,31 @@ public class RMQTools {
 
 
 
-    public static Object message;
-    public static void receiveMessage(Channel channel, String queuename){
-        message = null;
-        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            message = delivery.getBody();
-        };
+    public static byte[] receiveMessage(Channel channel, String queuename){
+
+        final RMQMessage m = new RMQMessage();
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
         try {
             channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {
             });
         }catch (Exception e){
             System.out.println("Erreur de consommation na : " + e.getMessage());
         }
+        return m.msg;
     }
 
-    public static byte[] receiveMessageWaited(Channel channel, String queuename){
-        message = null;
-        int waittimemax = 100;
-        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            message = delivery.getBody();
-        };
+    public static byte[] receiveMessageWaited(Channel channel, String queuename, int waittimemax){
+        final RMQMessage m = new RMQMessage();
+
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
+
         try {
-            channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {
-            });
+            channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {});
         }catch (Exception e){
             System.out.println("Erreur de consommation a : " +e.getMessage());
         }
 
-        while (message == null){
+        while (m.msg == null){
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
             }catch (Exception e){
@@ -136,14 +140,11 @@ public class RMQTools {
                 return null;
             }
         }
-        return (byte[])message;
+        return m.msg;
     }
 
-    public static String getMessageAsString(){
-        return new String((byte[])message);
-    }
-    public Object getMessageAsObject(){
-        return  SerializationUtils.deserialize((byte[])message);
-    }
 }
 
+class RMQMessage{
+    byte[] msg;
+}

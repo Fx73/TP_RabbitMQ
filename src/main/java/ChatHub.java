@@ -31,6 +31,16 @@ public class ChatHub implements  Serializable {
     }
 
 
+    public void WaitForMessages(){
+        while (true) {
+            byte[] message = RMQTools.receiveMessage(channel, QUEUE_HUB_CLIENT);
+            if(message != null){
+                //traiter le message ici
+            }
+        }
+    }
+
+
     public void PublishChatRoomList() {
         try {
             channel.basicPublish("", QUEUE_HUB_SERVER, null, SerializationUtils.serialize( namelist));
@@ -40,11 +50,13 @@ public class ChatHub implements  Serializable {
     }
 
 
-    public  void PublishRoomURI(String name) throws NotBoundException {
+    public void PublishRoomURI(String name, String private_queue) throws NotBoundException {
         if(!namelist.contains(name))
             throw new NotBoundException("There is no room with this name : " + name);
         try {
-            channel.basicPublish("", QUEUE_HUB_SERVER, null,("Room_"+name+"_Service").getBytes());
+            RMQTools.addQueue(channel,private_queue);
+            channel.basicPublish("", private_queue, null,("Room_"+name+"_Service").getBytes());
+            RMQTools.deleteQueue(channel,private_queue);
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -58,8 +70,6 @@ public class ChatHub implements  Serializable {
         ChatRoom newchat = new ChatRoom(name);
         chatlist.add(newchat);
         namelist.add(name);
-
-        PublishRoomURI(name);
     }
 
 
