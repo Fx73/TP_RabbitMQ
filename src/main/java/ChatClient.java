@@ -17,6 +17,8 @@ public class ChatClient {
 	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
+	static ChatClientWaiter clientWaiter;
+
 	static boolean in_room = false;
 
 	public static void main(String[] args) {
@@ -32,10 +34,14 @@ public class ChatClient {
 		RMQTools.addQueue(channel,QUEUE_HUB_CLIENT);
 		RMQTools.addQueue(channel,QUEUE_HUB_SERVER);
 
+		clientWaiter = new ChatClientWaiter(channel, QUEUE_HUB_SERVER);
+		new Thread(clientWaiter).start();
 
 	}
 
 	static void Update() {
+		// TODO:Décaler les updates dans les Waiters correspondants
+
 		Frame.getWindow().UpdateButtons(null);
 
 		if(in_room) {
@@ -53,11 +59,11 @@ public class ChatClient {
 			return;
 		}
 
-		// Remote method invocation
+		// TODO:Remote method invocation
 	}
 
 	static void Select_Room(String name) {
-		// Remote method invocation
+		// TODO:Remote method invocation
 		Update();
 	}
 
@@ -74,7 +80,7 @@ public class ChatClient {
         if(result == null)
             return;
 
-		// Remote method invocation
+		// TODO:Remote method invocation
 		
 		Select_Room(result);
 
@@ -82,7 +88,7 @@ public class ChatClient {
 
 	static void Delete_Room() {
 		
-		// Remote method invocation
+		// TODO:Remote method invocation
 		Update();
 
 	}

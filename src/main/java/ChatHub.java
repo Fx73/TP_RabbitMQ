@@ -34,7 +34,7 @@ public class ChatHub implements  Serializable {
         while (true) {
             byte[] message = RMQTools.receiveMessage(channel, QUEUE_HUB_CLIENT);
             if(message != null){
-                //traiter le message ici
+                //TODO:traiter le message
             }
         }
     }
@@ -42,6 +42,7 @@ public class ChatHub implements  Serializable {
 
     public void PublishChatRoomList() {
         try {
+            //TODO:publier la liste sous un format acceptable
             channel.basicPublish("", QUEUE_HUB_SERVER, null, null);
         } catch (IOException e) {
             e.printStackTrace();
@@ -62,7 +63,8 @@ public class ChatHub implements  Serializable {
     }
 
 
-    public void NewChatRoom(String name) throws AlreadyBoundException, NotBoundException {
+    public void NewChatRoom(String name) throws AlreadyBoundException{
+        //Todo: Lancer un nouveau programme
         if(namelist.contains(name))
             throw new AlreadyBoundException("A room already exists with name : " + name);
 
@@ -73,6 +75,7 @@ public class ChatHub implements  Serializable {
 
 
     public void RemoveChatRoom(String name) {
+        //Todo: Arreter un programme
         chatlist.remove(namelist.indexOf(name));
         namelist.remove(name);
     }
