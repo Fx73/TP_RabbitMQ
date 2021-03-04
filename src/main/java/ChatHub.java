@@ -1,4 +1,5 @@
 import com.rabbitmq.client.Channel;
+import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -30,27 +31,27 @@ public class ChatHub implements  Serializable {
     }
 
 
-    public  int GetChatRoomNumber() {
-        return chatlist.size();
+    public void PublishChatRoomList() {
+        try {
+            channel.basicPublish("", QUEUE_HUB_SERVER, null, SerializationUtils.serialize( namelist));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
-    public String[] PublishChatRoomList() {
-
-
-
-        return namelist.toArray(new String[0]);
-    }
-
-
-    public  String GetChatRoomURI(String name) throws NotBoundException {
+    public  void PublishRoomURI(String name) throws NotBoundException {
         if(!namelist.contains(name))
             throw new NotBoundException("There is no room with this name : " + name);
-        return "Room_"+name+"_Service";
+        try {
+            channel.basicPublish("", QUEUE_HUB_SERVER, null,("Room_"+name+"_Service").getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
 
-    public String NewChatRoom(String name) throws AlreadyBoundException, NotBoundException {
+    public void NewChatRoom(String name) throws AlreadyBoundException, NotBoundException {
         if(namelist.contains(name))
             throw new AlreadyBoundException("A room already exists with name : " + name);
 
@@ -58,7 +59,7 @@ public class ChatHub implements  Serializable {
         chatlist.add(newchat);
         namelist.add(name);
 
-        return GetChatRoomURI(name);
+        PublishRoomURI(name);
     }
 
 

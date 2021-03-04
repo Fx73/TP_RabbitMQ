@@ -1,8 +1,3 @@
-
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-
 import java.io.*;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -10,8 +5,6 @@ import java.util.concurrent.TimeoutException;
 
 public class ChatServer {
 	static ChatHub hub;
-
-
 
 
 	public static void  main(String [] args){
