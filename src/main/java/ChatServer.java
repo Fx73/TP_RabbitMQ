@@ -1,7 +1,9 @@
+import com.rabbitmq.client.Channel;
+
 import java.io.*;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.TimeoutException;
+import java.util.concurrent.TimeUnit;
 
 public class ChatServer {
 	static ChatHub hub;
@@ -15,7 +17,6 @@ public class ChatServer {
             return ;
 
 
-
 		// Set up a timer for save
 		Timer timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
@@ -24,17 +25,8 @@ public class ChatServer {
 			}
 		}, 10000, 10000);
 
+		hub.WaitForMessages();
 
-		Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-			try {
-				Save();
-
-			} catch (Exception e) {
-				System.out.println("Error on exit : ");
-				e.printStackTrace();
-			}
-
-		}));
   }
 
   static boolean Load(){

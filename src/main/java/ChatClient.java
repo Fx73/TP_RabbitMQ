@@ -13,8 +13,11 @@ import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 
 public class ChatClient {
-	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER";
-	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT";
+	protected static Channel channel;
+	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
+	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
+
+	static boolean in_room = false;
 
 	public static void main(String[] args) {
 		String host;
@@ -25,48 +28,20 @@ public class ChatClient {
 
 		SwingUtilities.invokeLater(() -> Frame.setWindow(host).setVisible(true));
 
-		try {
-			ConnectionFactory factory = new ConnectionFactory();
-			factory.setHost("localhost");
-			Connection connection = factory.newConnection();
-			Channel channel = connection.createChannel();
-
-			channel.queueDeclare(QUEUE_HUB_SERVER, false, false, false, null);
+		channel = RMQTools.channelCreatorLocal();
+		RMQTools.addQueue(channel,QUEUE_HUB_CLIENT);
+		RMQTools.addQueue(channel,QUEUE_HUB_SERVER);
 
 
-			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-				String message = new String(delivery.getBody(), "UTF-8");
-				System.out.println(" [x] Received '" + message + "'");
-			};
-			channel.basicConsume(QUEUE_HUB_SERVER, true, deliverCallback, consumerTag -> { });
-
-
-
-			// Set up a timer for update
-			Timer timer = new Timer();
-			timer.scheduleAtFixedRate(new TimerTask() {
-				public void run() {
-					Update();
-				}
-			}, 2000, 10000);
-
-			Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-					// Remote method invocation
-
-			}));
-
-		} catch (Exception e) {
-			Frame.getWindow().set_chattextarea("Error on client: " + e);
-
-		}
 	}
 
 	static void Update() {
-		// Remote method invocation
 		Frame.getWindow().UpdateButtons(null);
-		Frame.getWindow().UpdateNames(null);
-		Frame.getWindow().set_chattextarea(null);
 
+		if(in_room) {
+			Frame.getWindow().UpdateNames(null);
+			Frame.getWindow().set_chattextarea(null);
+		}
 
 		Frame.getWindow().revalidate();
 		Frame.getWindow().repaint();
@@ -142,7 +117,7 @@ class Frame extends JFrame {
 	private final JTextPane usersconnected = new JTextPane();
 
 	private Frame(String target) {
-		super("RMI Chat : "+target);
+		super("RabbitMQ Chat : "+target);
 
 		setDefaultCloseOperation(EXIT_ON_CLOSE);
 		setPreferredSize(new Dimension(1000,600));
