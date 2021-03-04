@@ -14,11 +14,12 @@ public class ChatServer {
 
 
 
-	public static void  main(String [] args) throws IOException, TimeoutException {
-		hub	= new ChatHub();
+	public static void  main(String [] args){
+		if(!Load())
+            hub = new ChatHub();
 
-		Load();
-
+        if(!hub.Init_Hub())
+            return ;
 
 
 
@@ -43,7 +44,7 @@ public class ChatServer {
 		}));
   }
 
-  static void Load(){
+  static boolean Load(){
 	  try {
 		  FileInputStream fi = new FileInputStream("hubsave.txt");
 		  ObjectInputStream oi = new ObjectInputStream(fi);
@@ -54,9 +55,10 @@ public class ChatServer {
 		  fi.close();
 		  System.out.println("Save File found");
 	  } catch (IOException | ClassNotFoundException e) {
-		  hub = new ChatHub();
 		  System.out.println("No save found");
+		  return false;
 	  }
+	  return true;
   }
 
   static void Save(){

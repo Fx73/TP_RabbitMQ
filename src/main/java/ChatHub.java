@@ -8,29 +8,24 @@ import java.util.ArrayList;
 
 
 public class ChatHub implements  Serializable {
-    final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER";
-    final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT";
+    final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Server emet ici
+    final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Server ecoute ici
     protected transient Channel channel;
 
     final ArrayList<String> namelist = new ArrayList<>();
     final ArrayList<ChatRoom> chatlist = new ArrayList<>();
 
 
-    ChatHub(){
-        Init_Hub();
-    }
-    private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
-        in.defaultReadObject();
-        Init_Hub();
-
-    }
-
-    private boolean Init_Hub(){
+    public boolean Init_Hub(){
         channel = RMQTools.channelCreatorLocal();
         if (channel == null) {
             System.out.println("Impossible de se connecter au serveur ");
             return false;
         }
+
+        RMQTools.addExchange(channel,QUEUE_HUB_SERVER);
+        RMQTools.addQueue(channel,QUEUE_HUB_CLIENT);
+
         return true;
     }
 
