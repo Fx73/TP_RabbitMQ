@@ -1,4 +1,4 @@
-/*
+package Client;/*
  * Copyright (c) 2011 Karl Tauber <karl at jformdesigner dot com>
  * All rights reserved.
  *

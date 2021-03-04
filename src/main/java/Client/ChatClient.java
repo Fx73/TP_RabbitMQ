@@ -1,25 +1,24 @@
+package Client;
+
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Arrays;
-import java.util.Timer;
-import java.util.TimerTask;
 
+import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
+
 
 public class ChatClient {
 	protected static Channel channel;
 	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
-	static ChatClientWaiter clientWaiter;
+	static ClientHubListener clientWaiter;
 
-	static boolean in_room = false;
+	static String curr_room = null;
 
 	public static void main(String[] args) {
 		String host;
@@ -34,7 +33,7 @@ public class ChatClient {
 		RMQTools.addQueue(channel,QUEUE_HUB_CLIENT);
 		RMQTools.addQueue(channel,QUEUE_HUB_SERVER);
 
-		clientWaiter = new ChatClientWaiter(channel, QUEUE_HUB_SERVER);
+		clientWaiter = new ClientHubListener(channel, QUEUE_HUB_SERVER);
 		new Thread(clientWaiter).start();
 
 	}
@@ -44,7 +43,7 @@ public class ChatClient {
 
 		Frame.getWindow().UpdateButtons(null);
 
-		if(in_room) {
+		if(curr_room != null) {
 			Frame.getWindow().UpdateNames(null);
 			Frame.getWindow().set_chattextarea(null);
 		}
@@ -63,6 +62,7 @@ public class ChatClient {
 	}
 
 	static void Select_Room(String name) {
+		curr_room = name;
 		// TODO:Remote method invocation
 		Update();
 	}
@@ -80,17 +80,13 @@ public class ChatClient {
         if(result == null)
             return;
 
-		// TODO:Remote method invocation
-		
-		Select_Room(result);
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"CREATE "+result);
 
+		Select_Room(result);
 	}
 
 	static void Delete_Room() {
-		
-		// TODO:Remote method invocation
-		Update();
-
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+curr_room);
 	}
 }
 class Frame extends JFrame {
@@ -105,12 +101,12 @@ class Frame extends JFrame {
 		}
 		if(timeout <=0){
 		
-		System.out.println("Frame is missing");
+		System.out.println("Client.Frame is missing");
 		System.exit(1);}}
 		 return window;
 	}
 	public static Frame setWindow(String name){
-			System.out.println("Building Frame ...");
+			System.out.println("Building Client.Frame ...");
 		return window = new Frame(name);
 	}
 

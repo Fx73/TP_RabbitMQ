@@ -1,8 +1,11 @@
+package Tools;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import com.rabbitmq.client.DeliverCallback;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class RMQTools {
@@ -142,6 +145,16 @@ public class RMQTools {
         }
         return m.msg;
     }
+
+
+    public static void sendMessage(Channel channel, String queue, String s){
+        try {
+            channel.basicPublish(queue, "", null, s.getBytes());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
 
 }
 

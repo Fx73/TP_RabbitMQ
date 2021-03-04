@@ -34,6 +34,12 @@
         <version>1.7.30</version>
         <scope>test</scope>
     </dependency>
+        <!-- JSON parser (serialization) -->
+        <dependency>
+            <groupId>org.json</groupId>
+            <artifactId>json</artifactId>
+            <version>20201115</version>
+        </dependency>
     </dependencies>
 
 

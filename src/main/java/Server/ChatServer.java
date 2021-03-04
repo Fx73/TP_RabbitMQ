@@ -1,9 +1,8 @@
-import com.rabbitmq.client.Channel;
+package Server;
 
 import java.io.*;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.TimeUnit;
 
 public class ChatServer {
 	static ChatHub hub;
@@ -13,7 +12,7 @@ public class ChatServer {
 		if(!Load())
             hub = new ChatHub();
 
-        if(!hub.Init_Hub())
+        if(!hub.Init())
             return ;
 
 

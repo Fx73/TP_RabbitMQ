@@ -1,9 +1,11 @@
+package Client;
+
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
 import java.util.concurrent.TimeUnit;
 
-public class ChatClientWaiter implements Runnable {
+public class ClientHubListener implements Runnable {
     private Channel channel;
     private String queue_in;
 
@@ -11,7 +13,7 @@ public class ChatClientWaiter implements Runnable {
 
     public boolean running;
 
-    public ChatClientWaiter (Channel channel, String queue_in){
+    public ClientHubListener(Channel channel, String queue_in){
         running = true;
         this.channel = channel;
         this.queue_in = queue_in;
@@ -20,12 +22,12 @@ public class ChatClientWaiter implements Runnable {
 
     @Override
     public void run() {
-        receiveMessage();
-
         while (running) {
+            receiveMessage();
+
             if (this.message != null) {
-                String message = new String((byte[])this.message);
-                //TODO:Gerer le message
+                String[] message = Tools.SerializationTools.myStringUnparser(new String((byte[])this.message));
+                Frame.getWindow().UpdateButtons(message);
             }
             try {
                 TimeUnit.MILLISECONDS.sleep(100);
@@ -47,4 +49,5 @@ public class ChatClientWaiter implements Runnable {
             System.out.println("Erreur de consommation na : " + e.getMessage());
         }
     }
+
 }

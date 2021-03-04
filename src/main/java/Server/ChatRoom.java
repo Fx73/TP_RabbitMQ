@@ -1,30 +1,56 @@
+package Server;
+
+import Tools.RMQTools;
+import com.rabbitmq.client.Channel;
+
 import java.io.IOException;
 import java.io.Serializable;
-import java.rmi.RemoteException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
 public class ChatRoom implements Serializable {
     ChatLog _chatlog;
-    String _name;
+    String QUEUE_ROOM_OUT; //Room emet ici
+    String QUEUE_ROOM_IN; //Room ecoute ici
+    protected transient Channel channel;
+
     transient ArrayList<String> users = new ArrayList<>();
     transient ArrayList<Timer> timers = new ArrayList<>();
 
     ChatRoom(String name){
-        _name = name;
+        QUEUE_ROOM_IN = name + "_IN";
+        QUEUE_ROOM_OUT = name + "_OUT";
         _chatlog = new ChatLog(100);
     }
 
-    public String GetRoomName() throws RemoteException{
-        return _name;
+    public boolean Init(){
+        channel = RMQTools.channelCreatorLocal();
+        if (channel == null) {
+            System.out.println("Impossible de se connecter au serveur ");
+            return false;
+        }
+
+        RMQTools.addExchange(channel, QUEUE_ROOM_OUT);
+        RMQTools.addQueue(channel, QUEUE_ROOM_IN);
+
+        return true;
     }
 
-    public void Say(String name, String s) throws RemoteException {
+    public void WaitForMessages(){
+        while (true) {
+            byte[] message = RMQTools.receiveMessage(channel, QUEUE_ROOM_IN);
+            if(message != null){
+                //TODO:traiter le message
+            }
+        }
+    }
+
+    public void Say(String name, String s) {
         _chatlog.Add_log(name,s);
     }
 
-    public String Get_chatlog() throws RemoteException{
+    public String Get_chatlog() {
         return _chatlog.Get_Logs();
     }
 
