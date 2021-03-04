@@ -17,6 +17,8 @@ public class ChatClient {
 	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
+	static boolean in_room = false;
+
 	public static void main(String[] args) {
 		String host;
 		if (args.length < 1)
@@ -34,11 +36,12 @@ public class ChatClient {
 	}
 
 	static void Update() {
-		// Remote method invocation
 		Frame.getWindow().UpdateButtons(null);
-		Frame.getWindow().UpdateNames(null);
-		Frame.getWindow().set_chattextarea(null);
 
+		if(in_room) {
+			Frame.getWindow().UpdateNames(null);
+			Frame.getWindow().set_chattextarea(null);
+		}
 
 		Frame.getWindow().revalidate();
 		Frame.getWindow().repaint();

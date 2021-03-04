@@ -1,5 +1,4 @@
 import com.rabbitmq.client.Channel;
-import org.apache.commons.lang3.SerializationUtils;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -43,7 +42,7 @@ public class ChatHub implements  Serializable {
 
     public void PublishChatRoomList() {
         try {
-            channel.basicPublish("", QUEUE_HUB_SERVER, null, SerializationUtils.serialize( namelist));
+            channel.basicPublish("", QUEUE_HUB_SERVER, null, null);
         } catch (IOException e) {
             e.printStackTrace();
         }
