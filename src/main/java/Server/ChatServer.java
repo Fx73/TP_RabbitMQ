@@ -1,6 +1,7 @@
 package Server;
 
 import java.io.*;
+import java.rmi.AlreadyBoundException;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -9,11 +10,14 @@ public class ChatServer {
 
 
 	public static void  main(String [] args){
-		if(!Load())
-            hub = new ChatHub();
+		hub = new ChatHub();
 
-        if(!hub.Init())
-            return ;
+		if(!hub.Init())
+			return ;
+
+		Load();
+
+
 
 
 		// Set up a timer for save
@@ -33,12 +37,15 @@ public class ChatServer {
 		  FileInputStream fi = new FileInputStream("hubsave.txt");
 		  ObjectInputStream oi = new ObjectInputStream(fi);
 
-		  hub = (ChatHub) oi.readObject();
+		  String[] roomlist = (String[]) oi.readObject();
+		  for (String s:roomlist) {
+			  hub.NewChatRoom(s);
+		  }
 
 		  oi.close();
 		  fi.close();
 		  System.out.println("Save File found");
-	  } catch (IOException | ClassNotFoundException e) {
+	  } catch (IOException | ClassNotFoundException | AlreadyBoundException e) {
 		  System.out.println("No save found");
 		  return false;
 	  }
@@ -50,7 +57,7 @@ public class ChatServer {
 		  FileOutputStream f = new FileOutputStream("hubsave.txt");
 		  ObjectOutputStream o = new ObjectOutputStream(f);
 
-		  o.writeObject(hub);
+		  o.writeObject(hub.namelist.toArray(new String[0]));
 
 		  o.close();
 		  f.close();

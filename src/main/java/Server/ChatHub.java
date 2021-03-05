@@ -13,10 +13,10 @@ import java.util.ArrayList;
 import static Tools.SerializationTools.myStringParser;
 
 
-public class ChatHub implements  Serializable {
+public class ChatHub {
     final String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Server emet ici
     final String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Server ecoute ici
-    protected transient Channel channel;
+    protected Channel channel;
 
     final ArrayList<String> namelist = new ArrayList<>();
 
@@ -48,11 +48,7 @@ public class ChatHub implements  Serializable {
         JSONStringer mystringer = new JSONStringer();
         mystringer.array();
 
-        try {
-            channel.basicPublish("", QUEUE_HUB_SERVER, null, myStringParser(namelist.toArray(new String[0])).getBytes());
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        RMQTools.sendMessage(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
     }
 
 

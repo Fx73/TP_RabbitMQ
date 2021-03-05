@@ -9,18 +9,25 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static Tools.SerializationTools.myStringParser;
+
 public class ChatRoom implements Serializable {
     ChatLog _chatlog;
-    String QUEUE_ROOM_OUT; //Room emet ici
-    String QUEUE_ROOM_IN; //Room ecoute ici
+    String QUEUE_ROOM_LOGS_OUT; //Room emet ici
+    String QUEUE_ROOM_USERS_OUT; //Room emet ici
+    String QUEUE_ROOM_LOGS_IN; //Room ecoute ici
+    String QUEUE_ROOM_USERS_IN; //Room ecoute ici
+
     protected transient Channel channel;
 
     transient ArrayList<String> users = new ArrayList<>();
     transient ArrayList<Timer> timers = new ArrayList<>();
 
     ChatRoom(String name){
-        QUEUE_ROOM_IN = name + "_IN";
-        QUEUE_ROOM_OUT = name + "_OUT";
+        QUEUE_ROOM_USERS_IN = name + "_USERS_IN";
+        QUEUE_ROOM_LOGS_IN = name + "_LOGS_IN";
+        QUEUE_ROOM_USERS_OUT = name + "_USERS_OUT";
+        QUEUE_ROOM_LOGS_OUT = name + "_LOGS_OUT";
         _chatlog = new ChatLog(100);
     }
 
@@ -31,27 +38,36 @@ public class ChatRoom implements Serializable {
             return false;
         }
 
-        RMQTools.addExchange(channel, QUEUE_ROOM_OUT);
-        RMQTools.addQueue(channel, QUEUE_ROOM_IN);
+        RMQTools.addExchange(channel, QUEUE_ROOM_USERS_OUT);
+        RMQTools.addExchange(channel, QUEUE_ROOM_LOGS_OUT);
+        RMQTools.addQueue(channel, QUEUE_ROOM_USERS_IN);
+        RMQTools.addQueue(channel, QUEUE_ROOM_LOGS_IN);
 
         return true;
     }
 
     public void WaitForMessages(){
         while (true) {
-            byte[] message = RMQTools.receiveMessage(channel, QUEUE_ROOM_IN);
-            if(message != null){
-                //TODO:traiter le message
+            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_LOGS_IN));
+            if(message.startsWith("+")){
+                Register_User(message.substring(1));
+            }else if (message.startsWith("-")){
+                Unregister_User(message.substring(1));
             }
+        }
+    }
+
+    public void WaitForUsers(){
+        while (true) {
+            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_USERS_IN));
+            String[] m = message.split("<-NAME-SEPARATOR->");
+            Say(m[0],m[1]);
         }
     }
 
     public void Say(String name, String s) {
         _chatlog.Add_log(name,s);
-    }
-
-    public String Get_chatlog() {
-        return _chatlog.Get_Logs();
+        RMQTools.sendMessage(channel,QUEUE_ROOM_LOGS_OUT,_chatlog.Get_Logs());
     }
 
     public void Register_User(String name){
@@ -70,6 +86,8 @@ public class ChatRoom implements Serializable {
             users.add(name);
             timers.add(timer);
         }
+
+        RMQTools.sendMessage(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     public void Unregister_User(String name){
@@ -81,9 +99,8 @@ public class ChatRoom implements Serializable {
         timers.get(i).cancel();
         timers.remove(i);
         users.remove(name);
-    }
-    public String[] Get_Users(){
-        return users.toArray(new String[0]);
+
+        RMQTools.sendMessage(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     private TimerTask AutoUnregister_User(String name){
