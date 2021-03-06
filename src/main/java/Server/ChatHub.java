@@ -18,6 +18,8 @@ public class ChatHub {
     final String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Server ecoute ici
     protected Channel channel;
 
+
+
     final ArrayList<String> namelist = new ArrayList<>();
 
     public boolean Init(){

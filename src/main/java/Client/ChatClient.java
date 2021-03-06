@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
 
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
@@ -16,7 +17,11 @@ public class ChatClient {
 	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
-	static ClientHubListener clientWaiter;
+	static String QUEUE_ROOM_LOGS_OUT; //Client ecoute ici
+	static String QUEUE_ROOM_USERS_OUT; //Client ecoute ici
+	static String QUEUE_ROOM_LOGS_IN; //Client emet ici
+	static String QUEUE_ROOM_USERS_IN; //Client emet ici
+
 
 	static String curr_room = null;
 
@@ -33,21 +38,63 @@ public class ChatClient {
 		RMQTools.addQueue(channel,QUEUE_HUB_CLIENT);
 		RMQTools.addQueue(channel,QUEUE_HUB_SERVER);
 
-		clientWaiter = new ClientHubListener(channel, QUEUE_HUB_SERVER);
-		new Thread(clientWaiter).start();
+		new Thread(ChatClient::UpdateRooms).start();
 
 	}
 
-	static void Update() {
-		// TODO:Décaler les updates dans les Waiters correspondants
 
-		Frame.getWindow().UpdateButtons(null);
+	static void UpdateMessages(){
+		while (curr_room!= null) {
+			byte[] message = RMQTools.receiveMessage(channel,QUEUE_ROOM_LOGS_OUT);
 
-		if(curr_room != null) {
-			Frame.getWindow().UpdateNames(null);
-			Frame.getWindow().set_chattextarea(null);
+			if (message != null) {
+				Frame.getWindow().set_chattextarea(new String(message));
+				Update();
+			}
+			try {
+				TimeUnit.MILLISECONDS.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
 		}
+	}
 
+	static void UpdateRooms(){
+		while (true) {
+			 byte[] message = RMQTools.receiveMessage(channel,QUEUE_HUB_SERVER);
+
+			if (message != null) {
+				String[] m = Tools.SerializationTools.myStringUnparser(new String(message));
+				Frame.getWindow().UpdateButtons(m);
+				Update();
+			}
+			try {
+				TimeUnit.MILLISECONDS.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+
+	static void UpdateUsers(){
+		while (curr_room!= null) {
+			byte[] message = RMQTools.receiveMessage(channel,QUEUE_ROOM_USERS_OUT);
+
+			if (message != null) {
+				String[] m = Tools.SerializationTools.myStringUnparser(new String(message));
+				Frame.getWindow().UpdateNames(m);
+				Update();
+			}
+			try {
+				TimeUnit.MILLISECONDS.sleep(100);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+
+	static void Update() {
 		Frame.getWindow().revalidate();
 		Frame.getWindow().repaint();
 	}

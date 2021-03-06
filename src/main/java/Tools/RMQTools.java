@@ -108,7 +108,6 @@ public class RMQTools {
 
 
     public static byte[] receiveMessage(Channel channel, String queuename){
-
         final RMQMessage m = new RMQMessage();
         DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
         try {
