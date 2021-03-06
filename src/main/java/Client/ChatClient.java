@@ -104,8 +104,9 @@ public class ChatClient {
 			Update();
 			return;
 		}
-
-		// TODO:Remote method invocation
+		if(curr_room == null)
+			return;
+		RMQTools.sendMessage(channel,QUEUE_ROOM_LOGS_IN,text);
 	}
 
 	static void Select_Room(String name) {
