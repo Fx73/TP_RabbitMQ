@@ -46,9 +46,9 @@ public class ChatRoom implements Serializable {
         return true;
     }
 
-    public void WaitForMessages(){
+    public void WaitForUsers(){
         while (true) {
-            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_LOGS_IN));
+            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_USERS_IN));
             if(message.startsWith("+")){
                 Register_User(message.substring(1));
             }else if (message.startsWith("-")){
@@ -57,9 +57,9 @@ public class ChatRoom implements Serializable {
         }
     }
 
-    public void WaitForUsers(){
+    public void WaitForMessages(){
         while (true) {
-            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_USERS_IN));
+            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_LOGS_IN));
             String[] m = message.split("<-NAME-SEPARATOR->");
             Say(m[0],m[1]);
         }
