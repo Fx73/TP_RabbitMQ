@@ -5,7 +5,9 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import Tools.RMQTools;
@@ -17,13 +19,11 @@ public class ChatClient {
 	final static String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
-	static String QUEUE_ROOM_LOGS_OUT; //Client ecoute ici
-	static String QUEUE_ROOM_USERS_OUT; //Client ecoute ici
-	static String QUEUE_ROOM_LOGS_IN; //Client emet ici
-	static String QUEUE_ROOM_USERS_IN; //Client emet ici
+	static RoomId c_room = null;
 
 
-	static String curr_room = null;
+	static ArrayList<String>roomnames = new ArrayList<>();
+	static ArrayList<RoomId>roomids = new ArrayList<>();
 
 	public static void main(String[] args) {
 		String host;
@@ -44,8 +44,8 @@ public class ChatClient {
 
 
 	static void UpdateMessages(){
-		while (curr_room!= null) {
-			byte[] message = RMQTools.receiveMessage(channel,QUEUE_ROOM_LOGS_OUT);
+		while (c_room!= null) {
+			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_LOGS_OUT);
 
 			if (message != null) {
 				Frame.getWindow().set_chattextarea(new String(message));
@@ -78,8 +78,8 @@ public class ChatClient {
 
 
 	static void UpdateUsers(){
-		while (curr_room!= null) {
-			byte[] message = RMQTools.receiveMessage(channel,QUEUE_ROOM_USERS_OUT);
+		while (c_room!= null) {
+			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_USERS_OUT);
 
 			if (message != null) {
 				String[] m = Tools.SerializationTools.myStringUnparser(new String(message));
@@ -104,14 +104,28 @@ public class ChatClient {
 			Update();
 			return;
 		}
-		if(curr_room == null)
+		if(c_room == null)
 			return;
-		RMQTools.sendMessage(channel,QUEUE_ROOM_LOGS_IN,text);
+		RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,text);
 	}
 
 	static void Select_Room(String name) {
-		curr_room = name;
-		// TODO:Remote method invocation
+		if(c_room != null){
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"-"+Frame.getWindow().user);
+		}
+		c_room = null;
+
+		if(roomnames.contains(name)){
+			c_room = roomids.get(roomnames.indexOf(name));
+		}else{
+			//TODO: Appel du hub
+			System.out.println("A implementer");
+		}
+
+		if(c_room != null){
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+Frame.getWindow().user);
+		}
+		
 		Update();
 	}
 
@@ -134,9 +148,17 @@ public class ChatClient {
 	}
 
 	static void Delete_Room() {
-		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+curr_room);
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+c_room.name);
 	}
 }
+class RoomId{
+	String name;
+	String QUEUE_ROOM_LOGS_OUT; //Client ecoute ici
+	String QUEUE_ROOM_USERS_OUT; //Client ecoute ici
+	String QUEUE_ROOM_LOGS_IN; //Client emet ici
+	String QUEUE_ROOM_USERS_IN; //Client emet ici
+}
+
 class Frame extends JFrame {
 	private static Frame window = null;
 	public static Frame getWindow() {
