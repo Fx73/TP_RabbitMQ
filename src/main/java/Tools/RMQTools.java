@@ -3,6 +3,7 @@ package Tools;
 import com.rabbitmq.client.*;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 public class RMQTools {
@@ -104,10 +105,18 @@ public class RMQTools {
     }
 
 
-
+    /*
+     * Ne pas utiliser directement les fonctions de receptions, mais copier coller le code de receiveMessage
+     * Pour une raison inconnue elles "n'attendent pas" sur la queue et renvoient null
+     */
     public static byte[] receiveMessage(Channel channel, String queuename){
         final RMQMessage m = new RMQMessage();
-        DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
+
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), "UTF-8");
+            System.out.println(" [x] Received '" + message + "'");
+            m.msg = delivery.getBody();
+        };
         try {
             channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {
             });
@@ -122,8 +131,11 @@ public class RMQTools {
         final RMQMessage m = new RMQMessage();
         while (m.msg == null){
 
-            DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
-
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                String message = new String(delivery.getBody(), "UTF-8");
+                m.msg = delivery.getBody();
+                System.out.println(" [x] Received '" + message + "'");
+            };
             try {
                 channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {});
             }catch (Exception e){
@@ -167,7 +179,7 @@ public class RMQTools {
 
     public static void sendMessage(Channel channel, String queue, String s){
         try {
-            channel.basicPublish(queue, "", null, s.getBytes());
+            channel.basicPublish("", queue, null, s.getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             e.printStackTrace();
         }

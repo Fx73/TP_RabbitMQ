@@ -2,9 +2,11 @@ package Server;
 
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DeliverCallback;
 import org.json.JSONStringer;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.rmi.NotBoundException;
 import java.util.ArrayList;
 import java.util.Timer;
@@ -41,35 +43,53 @@ public class ChatHub {
 
 
     public void WaitForMessages(){
+        System.out.println("Waiting for clients ...");
+
         while (true) {
-            byte[] message = RMQTools.receiveMessage(channel, QUEUE_HUB_CLIENT);
-            if(message != null){
+
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                String message = new String(delivery.getBody(), "UTF-8");
                 //TODO:traiter le message
+
+            };
+            try {
+                channel.basicConsume(QUEUE_HUB_CLIENT, true, deliverCallback, consumerTag -> {
+                });
+            }catch (Exception e){
+                System.out.println("Erreur de consommation : " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
 
     public void WaitForRooms(){
+        System.out.println("Waiting for rooms notifications ...");
         while (true) {
-            byte[] message = RMQTools.receiveMessage(channel, QUEUE_HUB_ROOM);
-            if(message != null){
-                String m = new String(message);
-                System.out.println("Received notif from room " + m);
-                Timer timer = new Timer(m);
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+                System.out.println("Received notif from room " + message);
+                Timer timer = new Timer(message);
                 timer.schedule(new TimerTask() {
                     @Override
                     public void run() {
-                        Relaunch_Room(m);
+                        Relaunch_Room(message);
                     }
                 }, 20000);
-                if(namelist.contains(m))
-                    timers.set(namelist.indexOf(m),timer);
+                if(namelist.contains(message))
+                    timers.set(namelist.indexOf(message),timer);
                 else{
-                    namelist.add(m);
+                    namelist.add(message);
                     timers.add(timer);
 
                     PublishChatRoomList();
                 }
+            };
+            try {
+                channel.basicConsume(QUEUE_HUB_ROOM, true, deliverCallback, consumerTag -> {
+                });
+            }catch (Exception e){
+                System.out.println("Erreur de consommation : " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
