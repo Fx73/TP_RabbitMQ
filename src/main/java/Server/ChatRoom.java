@@ -12,7 +12,10 @@ import java.util.TimerTask;
 import static Tools.SerializationTools.myStringParser;
 
 public class ChatRoom implements Serializable {
+    String name;
     ChatLog _chatlog;
+
+    final String QUEUE_HUB_ROOM = "QUEUE_HUB_ROOM"; //Room emet au hub ici
     String QUEUE_ROOM_LOGS_OUT; //Room emet ici
     String QUEUE_ROOM_USERS_OUT; //Room emet ici
     String QUEUE_ROOM_LOGS_IN; //Room ecoute ici
@@ -24,6 +27,7 @@ public class ChatRoom implements Serializable {
     transient ArrayList<Timer> timers = new ArrayList<>();
 
     ChatRoom(String name){
+        this.name = name;
         QUEUE_ROOM_USERS_IN = name + "_USERS_IN";
         QUEUE_ROOM_LOGS_IN = name + "_LOGS_IN";
         QUEUE_ROOM_USERS_OUT = name + "_USERS_OUT";
@@ -43,25 +47,41 @@ public class ChatRoom implements Serializable {
         RMQTools.addQueue(channel, QUEUE_ROOM_USERS_IN);
         RMQTools.addQueue(channel, QUEUE_ROOM_LOGS_IN);
 
+
+        // Set up a timer for Hub Notification
+        RMQTools.addQueue(channel, QUEUE_HUB_ROOM);
+        Timer timer = new Timer();
+        timer.scheduleAtFixedRate(new TimerTask() {
+            public void run() {
+                NotifyHubAlive();
+            }
+        }, 2000, 10000);
+
         return true;
     }
 
     public void WaitForUsers(){
         while (true) {
-            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_USERS_IN));
-            if(message.startsWith("+")){
-                Register_User(message.substring(1));
-            }else if (message.startsWith("-")){
-                Unregister_User(message.substring(1));
+            byte[] bmessage = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_USERS_IN);
+            if(bmessage != null){
+                String message = new String(bmessage);
+                if(message.startsWith("+")){
+                    Register_User(message.substring(1));
+                }else if (message.startsWith("-")){
+                    Unregister_User(message.substring(1));
+                }
             }
         }
     }
 
     public void WaitForMessages(){
         while (true) {
-            String message = new String(RMQTools.receiveMessage(channel, QUEUE_ROOM_LOGS_IN));
-            String[] m = message.split("<-NAME-SEPARATOR->");
-            Say(m[0],m[1]);
+            byte[] message = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_LOGS_IN);
+            if(message!= null) {
+                String[] m = new String(message).split("<-NAME-SEPARATOR->");
+                Say(m[0], m[1]);
+            }
+            System.out.println("Say");
         }
     }
 
@@ -106,6 +126,10 @@ public class ChatRoom implements Serializable {
     private TimerTask AutoUnregister_User(String name){
         Unregister_User(name);
         return null;
+    }
+
+    private void NotifyHubAlive(){
+        RMQTools.sendMessage(channel,QUEUE_HUB_ROOM,name);
     }
 
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {

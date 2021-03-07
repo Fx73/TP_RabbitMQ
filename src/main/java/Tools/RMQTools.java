@@ -1,14 +1,12 @@
 package Tools;
 
-import com.rabbitmq.client.Channel;
-import com.rabbitmq.client.Connection;
-import com.rabbitmq.client.ConnectionFactory;
-import com.rabbitmq.client.DeliverCallback;
+import com.rabbitmq.client.*;
 
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 public class RMQTools {
+    public static int WAIT_TIMEOUT = 100;
 
     public static void addExchange(Channel channel, String exchangename){
         boolean durable = false;    //durable - RabbitMQ will never lose the queue if a crash occurs
@@ -114,13 +112,36 @@ public class RMQTools {
             channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {
             });
         }catch (Exception e){
-            System.out.println("Erreur de consommation na : " + e.getMessage());
+            System.out.println("Erreur de consommation : " + e.getMessage());
+            e.printStackTrace();
         }
         return m.msg;
     }
 
-    public static byte[] receiveMessageWaited(Channel channel, String queuename, int waittimemax){
+    public static byte[] receiveMessageWaited(Channel channel, String queuename) {
         final RMQMessage m = new RMQMessage();
+        while (m.msg == null){
+
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
+
+            try {
+                channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {});
+            }catch (Exception e){
+                System.out.println("Erreur de consommation a : " +e.getMessage());
+                e.printStackTrace();
+            }
+
+            try {
+                TimeUnit.MILLISECONDS.sleep(WAIT_TIMEOUT);
+            }catch (Exception e){
+                System.out.println("Erreur d'attente de thread : " + e.getMessage());
+            }
+        }
+        return m.msg;
+    }
+    public static byte[] receiveMessageWaitedWithTimeout(Channel channel, String queuename, int waittimemax){
+        final RMQMessage m = new RMQMessage();
+        while (m.msg == null){
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> m.msg = delivery.getBody();
 
@@ -130,9 +151,8 @@ public class RMQTools {
             System.out.println("Erreur de consommation a : " +e.getMessage());
         }
 
-        while (m.msg == null){
             try {
-                TimeUnit.MILLISECONDS.sleep(100);
+                TimeUnit.MILLISECONDS.sleep(WAIT_TIMEOUT);
             }catch (Exception e){
                 System.out.println("Erreur d'attente de thread : " + e.getMessage());
             }
@@ -144,7 +164,6 @@ public class RMQTools {
         }
         return m.msg;
     }
-
 
     public static void sendMessage(Channel channel, String queue, String s){
         try {

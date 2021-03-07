@@ -1,7 +1,10 @@
 package Server;
 
+import Client.ChatClient;
+
 import java.io.*;
 import java.rmi.AlreadyBoundException;
+import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -28,6 +31,7 @@ public class ChatServer {
 			}
 		}, 10000, 10000);
 
+        new Thread(()->hub.WaitForRooms()).start();
 		hub.WaitForMessages();
 
   }
@@ -38,14 +42,24 @@ public class ChatServer {
 		  ObjectInputStream oi = new ObjectInputStream(fi);
 
 		  String[] roomlist = (String[]) oi.readObject();
-		  for (String s:roomlist) {
-			  hub.NewChatRoom(s);
-		  }
+		  hub.namelist.addAll(Arrays.asList(roomlist));
+
+          for (String roomname:roomlist) {
+              Timer timer = new Timer(roomname);
+              timer.schedule(new TimerTask() {
+                  @Override
+                  public void run() {
+                      hub.Relaunch_Room(roomname);
+                  }
+              }, 20000);
+              hub.timers.add(timer);
+          }
+
 
 		  oi.close();
 		  fi.close();
 		  System.out.println("Save File found");
-	  } catch (IOException | ClassNotFoundException | AlreadyBoundException e) {
+	  } catch (IOException | ClassNotFoundException e) {
 		  System.out.println("No save found");
 		  return false;
 	  }
