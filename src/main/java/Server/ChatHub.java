@@ -75,8 +75,10 @@ public class ChatHub {
                         Relaunch_Room(message);
                     }
                 }, 20000);
-                if(namelist.contains(message))
-                    timers.set(namelist.indexOf(message),timer);
+                if(namelist.contains(message)) {
+                    timers.get(namelist.indexOf(message)).cancel();
+                    timers.set(namelist.indexOf(message), timer);
+                }
                 else{
                     namelist.add(message);
                     timers.add(timer);
