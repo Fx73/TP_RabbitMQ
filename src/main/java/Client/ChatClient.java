@@ -24,11 +24,11 @@ public class ChatClient {
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
 
 	static RoomId c_room = null;
-
+	static boolean threadflag  = true;
 
 	static ArrayList<RoomId> rooms = new ArrayList<>();
 
-	public static void main(String[] args) {
+	public static void main(String[] args) throws InterruptedException {
 		String host;
 		if (args.length < 1)
 			host = "localhost";
@@ -57,8 +57,8 @@ public class ChatClient {
 	}
 
 
-	static void UpdateMessages(){
-		while (c_room!= null) {
+	static void UpdateLogs(){
+		while (true) {
 			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_LOGS_OUT);
 
 			if (message != null) {
@@ -73,12 +73,35 @@ public class ChatClient {
 		}
 	}
 
+
+	static void UpdateUsers(){
+		System.out.println("Listening for user list ...");
+		while (threadflag) {
+			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+				String message = new String(delivery.getBody(), "UTF-8");
+				DebugPrint("Received users from Room :\n" + message);
+				String[] m = Tools.SerializationTools.myStringUnparser(message);
+				Frame.getWindow().UpdateNames(m);
+				Update();
+			};
+			try {
+				channel.basicConsume(c_room.QUEUE_ROOM_USERS_OUT, true, deliverCallback, consumerTag -> {});
+			}catch (Exception e){
+				System.out.println("Erreur de consommation : " + e.getMessage());
+				e.printStackTrace();
+				return;
+			}
+		}
+		System.out.println("Ending listening thread");
+		threadflag = true;
+	}
+
 	static void UpdateRooms(){
         System.out.println("Listening for room list ...");
         while (true) {
 			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 				String message = new String(delivery.getBody(), "UTF-8");
-				DebugPrint("Received Update from hub :\n");
+				DebugPrint("Received Update from hub :\n" + message);
 				String[] m = Tools.SerializationTools.myStringUnparser(message);
 				Frame.getWindow().UpdateButtons(m);
 				Update();
@@ -93,23 +116,6 @@ public class ChatClient {
 		}
 	}
 
-
-	static void UpdateUsers(){
-		while (c_room!= null) {
-			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_USERS_OUT);
-
-			if (message != null) {
-				String[] m = Tools.SerializationTools.myStringUnparser(new String(message));
-				Frame.getWindow().UpdateNames(m);
-				Update();
-			}
-			try {
-				TimeUnit.MILLISECONDS.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-	}
 
 	static void Update() {
 		Frame.getWindow().revalidate();
@@ -131,8 +137,11 @@ public class ChatClient {
 	}
 
 	static void Select_Room(String name) {
+		String username = Frame.getWindow().user.getText();
+
 		if(c_room != null){
-			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"-"+Frame.getWindow().user);
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"-"+username);
+			threadflag= false;
 		}
 
 		c_room = RoomId.findByName(rooms,name);
@@ -149,7 +158,9 @@ public class ChatClient {
 				RMQTools.addQueue(channel, c_room.QUEUE_ROOM_LOGS_IN);
 				c_room.QUEUE_ROOM_LOGS_OUT = RMQTools.addQueueBound(channel, c_room.EXCHANGE_ROOM_LOGS_OUT);
 			}
-			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+Frame.getWindow().user);
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+username);
+			new Thread(ChatClient::UpdateUsers).start();
+			new Thread(ChatClient::UpdateLogs).start();
 		}
 
 		Update();

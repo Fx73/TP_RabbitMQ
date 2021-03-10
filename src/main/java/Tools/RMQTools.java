@@ -111,16 +111,15 @@ public class RMQTools {
      * Pour une raison inconnue elles "n'attendent pas" sur la queue et renvoient null
      */
     public static byte[] receiveMessage(Channel channel, String queuename){
-        final RMQMessage m = new RMQMessage();
+        RMQMessage m = new RMQMessage();
 
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), "UTF-8");
-            System.out.println(" [x] Received '" + message + "'");
+            DebugPrint("Recu : " + message);
             m.msg = delivery.getBody();
         };
         try {
-            channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {
-            });
+            channel.basicConsume(queuename, true, deliverCallback, consumerTag -> {});
         }catch (Exception e){
             System.out.println("Erreur de consommation : " + e.getMessage());
             e.printStackTrace();

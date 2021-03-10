@@ -2,6 +2,7 @@ package Server;
 
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DeliverCallback;
 
 import java.io.IOException;
 import java.io.Serializable;
@@ -10,6 +11,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static Tools.SerializationTools.myStringParser;
+import static Tools.RMQTools.DebugPrint;
 
 public class ChatRoom implements Serializable {
     String name;
@@ -62,14 +64,23 @@ public class ChatRoom implements Serializable {
 
     public void WaitForUsers(){
         while (true) {
-            byte[] bmessage = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_USERS_IN);
-            if(bmessage != null){
-                String message = new String(bmessage);
+
+            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                String message = new String(delivery.getBody(), "UTF-8");
                 if(message.startsWith("+")){
+                    DebugPrint("Received new  user :"+message.substring(1));
                     Register_User(message.substring(1));
                 }else if (message.startsWith("-")){
+                    DebugPrint("Received end  user :"+message.substring(1));
                     Unregister_User(message.substring(1));
                 }
+            };
+            try {
+                channel.basicConsume(QUEUE_ROOM_USERS_IN, true, deliverCallback, consumerTag -> {
+                });
+            }catch (Exception e){
+                System.out.println("Erreur de consommation : " + e.getMessage());
+                e.printStackTrace();
             }
         }
     }
@@ -107,7 +118,7 @@ public class ChatRoom implements Serializable {
             timers.add(timer);
         }
 
-        RMQTools.sendMessage(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
+        RMQTools.sendMessageExchanged(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     public void Unregister_User(String name){
