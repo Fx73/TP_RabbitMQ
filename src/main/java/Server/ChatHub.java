@@ -102,7 +102,7 @@ public class ChatHub {
     }
 
     public void PublishChatRoomList() {
-         RMQTools.sendMessage(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
+         RMQTools.sendMessageExchanged(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
     }
 
 

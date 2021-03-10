@@ -185,7 +185,13 @@ public class RMQTools {
             e.printStackTrace();
         }
     }
-
+    public static void sendMessageExchanged(Channel channel, String queue, String s){
+        try {
+            channel.basicPublish(queue,"", null, s.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public static void DebugPrint(Object message){
         if(DEBUG)

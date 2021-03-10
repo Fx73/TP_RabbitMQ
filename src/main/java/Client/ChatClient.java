@@ -19,9 +19,9 @@ import static Tools.RMQTools.DebugPrint;
 
 public class ChatClient {
 	protected static Channel channel;
-	final static String EXCHANGE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client ecoute ici
+	final static String EXCHANGE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client se lie ici
+	static String QUEUE_HUB_SERVER;					// pour pouvoir écouter ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
-	static String QUEUE_HUB_SERVER;
 
 	static RoomId c_room = null;
 
@@ -84,8 +84,7 @@ public class ChatClient {
 				Update();
 			};
 			try {
-				channel.basicConsume(QUEUE_HUB_SERVER, true, deliverCallback, consumerTag -> {
-				});
+				channel.basicConsume(QUEUE_HUB_SERVER, true, deliverCallback, consumerTag -> {});
 			}catch (Exception e){
 				System.out.println("Erreur de consommation : " + e.getMessage());
 				e.printStackTrace();
