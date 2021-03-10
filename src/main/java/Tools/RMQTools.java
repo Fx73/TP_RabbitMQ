@@ -7,6 +7,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.concurrent.TimeUnit;
 
 public class RMQTools {
+    public static boolean DEBUG = true;
     public static int WAIT_TIMEOUT = 100;
 
     public static void addExchange(Channel channel, String exchangename){
@@ -185,6 +186,11 @@ public class RMQTools {
         }
     }
 
+
+    public static void DebugPrint(Object message){
+        if(DEBUG)
+            System.out.println(message);
+    }
 
 }
 

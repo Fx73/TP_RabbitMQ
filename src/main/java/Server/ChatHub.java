@@ -3,7 +3,6 @@ package Server;
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
-import org.json.JSONStringer;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -13,7 +12,7 @@ import java.util.Timer;
 import java.util.TimerTask;
 
 import static Tools.SerializationTools.myStringParser;
-
+import static Tools.RMQTools.DebugPrint;
 
 public class ChatHub {
     final String QUEUE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Server emet ici
@@ -49,8 +48,14 @@ public class ChatHub {
 
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
-                //TODO:traiter le message
-
+                if(message.equals("UPDATE")){
+                    DebugPrint("Received Update Demand");
+                    PublishChatRoomList();
+                }else if(message.startsWith("CREATE ")) {
+                    //TODO:traiter le message
+                }else if (message.startsWith("DELETE ")){
+                    //TODO:traiter le message
+                }
             };
             try {
                 channel.basicConsume(QUEUE_HUB_CLIENT, true, deliverCallback, consumerTag -> {
@@ -67,7 +72,7 @@ public class ChatHub {
         while (true) {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
-                System.out.println("Received notif from room " + message);
+                DebugPrint("Received notif from room " + message);
                 Timer timer = new Timer(message);
                 timer.schedule(new TimerTask() {
                     @Override
@@ -97,10 +102,7 @@ public class ChatHub {
     }
 
     public void PublishChatRoomList() {
-        JSONStringer mystringer = new JSONStringer();
-        mystringer.array();
-
-        RMQTools.sendMessage(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
+         RMQTools.sendMessage(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
     }
 
 

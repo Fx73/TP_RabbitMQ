@@ -13,7 +13,9 @@ import java.util.concurrent.TimeUnit;
 
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
+import com.rabbitmq.client.DeliverCallback;
 
+import static Tools.RMQTools.DebugPrint;
 
 public class ChatClient {
 	protected static Channel channel;
@@ -42,13 +44,15 @@ public class ChatClient {
 		new Thread(ChatClient::UpdateRooms).start();
 
 
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"UPDATE");
+
+
 		//Debug
 		RoomId r = new RoomId("A");
 		r.QUEUE_ROOM_LOGS_IN="A_LOGS_IN";
 		r.EXCHANGE_ROOM_LOGS_OUT="A_LOGS_OUT";
 		r.QUEUE_ROOM_USERS_IN = "A_USERS_IN";
 		r.EXCHANGE_ROOM_USERS_OUT = "A_USERS_OUT";
-
 		rooms.add(r);
 	}
 
@@ -70,19 +74,23 @@ public class ChatClient {
 	}
 
 	static void UpdateRooms(){
-		while (true) {
-			 byte[] message = RMQTools.receiveMessage(channel,QUEUE_HUB_SERVER);
-
-			if (message != null) {
-				String[] m = Tools.SerializationTools.myStringUnparser(new String(message));
+        System.out.println("Listening for room list ...");
+        while (true) {
+			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+				String message = new String(delivery.getBody(), "UTF-8");
+				DebugPrint("Received Update from hub :\n");
+				String[] m = Tools.SerializationTools.myStringUnparser(message);
 				Frame.getWindow().UpdateButtons(m);
 				Update();
-			}
+			};
 			try {
-				TimeUnit.MILLISECONDS.sleep(1000);
-			} catch (InterruptedException e) {
+				channel.basicConsume(QUEUE_HUB_SERVER, true, deliverCallback, consumerTag -> {
+				});
+			}catch (Exception e){
+				System.out.println("Erreur de consommation : " + e.getMessage());
 				e.printStackTrace();
 			}
+
 		}
 	}
 
@@ -111,7 +119,7 @@ public class ChatClient {
 
 	static void Say(String text) {
 		if(text.equals("")){
-			Update();
+			RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"UPDATE");
 			return;
 		}
 		if(text.startsWith("<connect>")){
