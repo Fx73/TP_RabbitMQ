@@ -6,6 +6,7 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import java.util.Timer;
@@ -68,14 +69,14 @@ public class ChatClient {
  * 
  */
 	static void UpdateLogs(){
-		System.out.println("Listening for logs ");
+		System.out.println(" -- Listening for logs ");
 		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 			String message = new String(delivery.getBody(), "UTF-8");
 			Frame.getWindow().set_chattextarea(message);
 			Update();
 		};
 		try {
-			logtag = channel.basicConsume(c_room.QUEUE_ROOM_USERS_OUT, true, deliverCallback, consumerTag -> {});
+			logtag = channel.basicConsume(c_room.QUEUE_ROOM_LOGS_OUT, true, deliverCallback, consumerTag -> {});
 		}catch (Exception e){
 			System.out.println("Erreur de consommation : " + e.getMessage());
 			e.printStackTrace();
@@ -89,7 +90,7 @@ public class ChatClient {
  * 
  */
 	static void UpdateUsers(){
-		System.out.println("Listening for user list ...");
+		System.out.println(" -- Listening for user list ...");
 			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
 				String message = new String(delivery.getBody(), "UTF-8");
 				DebugPrint("Received users from Room :\n" + message);
@@ -105,7 +106,6 @@ public class ChatClient {
 				return;
 			}
 
-		System.out.println("Ending listening thread");
 	}
 
 	/**
@@ -113,9 +113,9 @@ public class ChatClient {
 	 * 
 	 */
 	static void UpdateRooms(){
-        System.out.println("Listening for room list ...");
+        System.out.println(" - Listening for room list ...");
 			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-				String message = new String(delivery.getBody(), "UTF-8");
+				String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
 				DebugPrint("Received Update from hub :\n" + message);
 				String[] m = Tools.SerializationTools.myStringUnparser(message);
 				Frame.getWindow().UpdateButtons(m);
@@ -154,9 +154,8 @@ public class ChatClient {
 			Select_Room(text.substring("<connect>".length()));
 			return;
 		}
-		if(c_room == null)
-			return;
-		RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,text);
+		if(c_room != null)
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,Frame.getWindow().user.getText()+ "<-NAME-SEPARATOR->"+text);
 	}
 
 	/**

@@ -6,6 +6,7 @@ import com.rabbitmq.client.DeliverCallback;
 
 import java.io.IOException;
 import java.io.Serializable;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -15,11 +16,11 @@ import static Tools.RMQTools.DebugPrint;
 
 public class ChatRoom implements Serializable {
     String name;
-    ChatLog _chatlog;
+    ChatLog chatlog;
 
     final String QUEUE_HUB_ROOM = "QUEUE_HUB_ROOM"; //Room emet au hub ici
-    String QUEUE_ROOM_LOGS_OUT; //Room emet ici
-    String QUEUE_ROOM_USERS_OUT; //Room emet ici
+    String EXCHANGE_ROOM_LOGS_OUT; //Room emet ici
+    String EXCHANGE_ROOM_USERS_OUT; //Room emet ici
     String QUEUE_ROOM_LOGS_IN; //Room ecoute ici
     String QUEUE_ROOM_USERS_IN; //Room ecoute ici
 
@@ -32,9 +33,9 @@ public class ChatRoom implements Serializable {
         this.name = name;
         QUEUE_ROOM_USERS_IN = name + "_USERS_IN";
         QUEUE_ROOM_LOGS_IN = name + "_LOGS_IN";
-        QUEUE_ROOM_USERS_OUT = name + "_USERS_OUT";
-        QUEUE_ROOM_LOGS_OUT = name + "_LOGS_OUT";
-        _chatlog = new ChatLog(100);
+        EXCHANGE_ROOM_USERS_OUT = name + "_USERS_OUT";
+        EXCHANGE_ROOM_LOGS_OUT = name + "_LOGS_OUT";
+        chatlog = new ChatLog(100);
     }
 
     public boolean Init(){
@@ -44,8 +45,8 @@ public class ChatRoom implements Serializable {
             return false;
         }
 
-        RMQTools.addExchange(channel, QUEUE_ROOM_USERS_OUT);
-        RMQTools.addExchange(channel, QUEUE_ROOM_LOGS_OUT);
+        RMQTools.addExchange(channel, EXCHANGE_ROOM_USERS_OUT);
+        RMQTools.addExchange(channel, EXCHANGE_ROOM_LOGS_OUT);
         RMQTools.addQueue(channel, QUEUE_ROOM_USERS_IN);
         RMQTools.addQueue(channel, QUEUE_ROOM_LOGS_IN);
 
@@ -91,10 +92,14 @@ public class ChatRoom implements Serializable {
      */
     public void WaitForMessages(){
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-            String message = new String(delivery.getBody(), "UTF-8");
-            String[] m = message.split("<-NAME-SEPARATOR->");
-            DebugPrint("Message recu de " + m[0] + " ("+m[1].length()+" chars)");
-            Say(m[0], m[1]);
+            String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+            try{
+                String[] m = message.split("<-NAME-SEPARATOR->");
+                DebugPrint("Message recu de " + m[0] + " ("+m[1].length()+" chars)");
+                Say(m[0], m[1]);
+            }catch (Exception e){
+            System.out.println("Message recu invalide");
+            }
         };
         try {
             channel.basicConsume(QUEUE_ROOM_LOGS_IN, true, deliverCallback, consumerTag -> {
@@ -106,8 +111,9 @@ public class ChatRoom implements Serializable {
     }
 
     public void Say(String name, String s) {
-        _chatlog.Add_log(name,s);
-        RMQTools.sendMessage(channel,QUEUE_ROOM_LOGS_OUT,_chatlog.Get_Logs());
+        chatlog.Add_log(name,s);
+        System.out.println(chatlog.Get_Logs());
+        RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_LOGS_OUT, chatlog.Get_Logs());
     }
 
     /**
@@ -131,7 +137,7 @@ public class ChatRoom implements Serializable {
             timers.add(timer);
         }
 
-        RMQTools.sendMessageExchanged(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
+        RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     /**
@@ -149,7 +155,7 @@ public class ChatRoom implements Serializable {
         timers.remove(i);
         users.remove(name);
 
-        RMQTools.sendMessage(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
+        RMQTools.sendMessage(channel, EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     /**
