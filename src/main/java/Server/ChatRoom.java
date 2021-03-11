@@ -69,10 +69,10 @@ public class ChatRoom implements Serializable {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
                 if(message.startsWith("+")){
-                    DebugPrint("Received new  user :"+message.substring(1));
+                    DebugPrint("Received user :"+message.substring(1));
                     Register_User(message.substring(1));
                 }else if (message.startsWith("-")){
-                    DebugPrint("Received end  user :"+message.substring(1));
+                    DebugPrint("Received user end:"+message.substring(1));
                     Unregister_User(message.substring(1));
                 }
             };
@@ -97,7 +97,7 @@ public class ChatRoom implements Serializable {
             Say(m[0], m[1]);
         };
         try {
-            channel.basicConsume(QUEUE_ROOM_USERS_IN, true, deliverCallback, consumerTag -> {
+            channel.basicConsume(QUEUE_ROOM_LOGS_IN, true, deliverCallback, consumerTag -> {
             });
         }catch (Exception e){
             System.out.println("Erreur de consommation : " + e.getMessage());
@@ -121,7 +121,7 @@ public class ChatRoom implements Serializable {
             public void run() {
                 AutoUnregister_User(name);
             }
-        }, 20000);
+        }, 30000);
 
         if(users.contains(name)){
             timers.set(users.indexOf(name),timer);
@@ -141,7 +141,8 @@ public class ChatRoom implements Serializable {
     public void Unregister_User(String name){
         int i = users.indexOf(name);
         if(i == -1){
-            System.out.println("Skipping failed unregister for " + name);
+            DebugPrint("Skipping failed unregister for " + name);
+            DebugPrint(Thread.currentThread().getStackTrace());
             return;
         }
         timers.get(i).cancel();

@@ -6,10 +6,9 @@ import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.*;
 
-import java.util.Collection;
+import java.util.Timer;
 import java.util.concurrent.TimeUnit;
 
 import Tools.RMQTools;
@@ -47,7 +46,12 @@ public class ChatClient {
 
 
 		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"UPDATE");
-
+		java.util.Timer timer = new Timer();
+		timer.scheduleAtFixedRate(new TimerTask() {
+			public void run() {
+				NotifyRoomAlive();
+			}
+		}, 20000, 20000);
 
 		//Debug
 		RoomId r = new RoomId("A");
@@ -133,6 +137,14 @@ public class ChatClient {
 		Frame.getWindow().repaint();
 	}
 
+
+	static void NotifyRoomAlive(){
+		if(c_room != null)
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+Frame.getWindow().user.getText());
+	}
+
+
+
 	static void Say(String text) {
 		if(text.equals("")){
 			RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"UPDATE");
@@ -149,7 +161,7 @@ public class ChatClient {
 
 	/**
 	 * Se connecter à une room spécifique
-	 * @param Nom de la room
+	 * @param name Nom de la room
 	 */
 	static void Select_Room(String name) {
 		String username = Frame.getWindow().user.getText();
