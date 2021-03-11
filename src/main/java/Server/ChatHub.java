@@ -41,6 +41,12 @@ public class ChatHub {
     }
 
 
+    /**
+     * Ecoute les clients
+     * Update : Liste des rooms
+     * Create : Créer une nouvelle salle
+     * DELETE : Supprimer une salle
+     */
     public void WaitForMessages(){
         System.out.println("Waiting for clients ...");
 
@@ -66,7 +72,12 @@ public class ChatHub {
             }
         }
     }
-
+    
+    
+/**
+ * Le hub detecte si une room n'est pas opérationel alors qu'elle devrait 
+ * 
+ */
     public void WaitForRooms(){
         System.out.println("Waiting for rooms notifications ...");
         while (true) {
@@ -101,11 +112,16 @@ public class ChatHub {
         }
     }
 
+    /**
+     * Envois la liste des room aux clients
+     */
     public void PublishChatRoomList() {
          RMQTools.sendMessageExchanged(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
     }
 
-
+/**
+ * Envois l'adresse d'une room
+ */
     public void PublishRoomURI(String name, String private_queue) throws NotBoundException {
         if(!namelist.contains(name))
             throw new NotBoundException("There is no room with this name : " + name);
@@ -118,7 +134,9 @@ public class ChatHub {
         }
     }
 
-
+/**
+ * Créer une chatroom
+ */
     public void NewChatRoom(String name) {
         if(namelist.contains(name)){
             System.out.println("A room already exists with name : " + name);
@@ -142,12 +160,20 @@ public class ChatHub {
         PublishChatRoomList();
     }
 
-
+/**
+ * Supprime une room
+ * @param Nom de la room
+ */
     public void RemoveChatRoom(String name) {
         //Todo: Arreter un programme
         namelist.remove(name);
     }
 
+    /**
+     * Relance une room
+     * @param nom de la roomù
+     * @return
+     */
     TimerTask Relaunch_Room(String name){
         timers.remove(namelist.indexOf(name));
         namelist.remove(name);

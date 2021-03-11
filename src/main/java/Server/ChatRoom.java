@@ -62,6 +62,9 @@ public class ChatRoom implements Serializable {
         return true;
     }
 
+    /**
+     * Attend la connexion/deconexion des users sur cette room
+     */
     public void WaitForUsers(){
         while (true) {
 
@@ -85,6 +88,9 @@ public class ChatRoom implements Serializable {
         }
     }
 
+    /**
+     * Attend les messages des users de la room
+     */
     public void WaitForMessages(){
         while (true) {
             byte[] message = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_LOGS_IN);
@@ -101,6 +107,10 @@ public class ChatRoom implements Serializable {
         RMQTools.sendMessage(channel,QUEUE_ROOM_LOGS_OUT,_chatlog.Get_Logs());
     }
 
+    /**
+     * Enregistre un utilisateur dans la room
+     * @param Nom de l'user
+     */
     public void Register_User(String name){
         Timer timer = new Timer(name);
         timer.schedule(new TimerTask() {
@@ -121,6 +131,10 @@ public class ChatRoom implements Serializable {
         RMQTools.sendMessageExchanged(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
+    /**
+     * Deconnecte un utilisateur de la room
+     * @param Nom de l'utilisateur
+     */
     public void Unregister_User(String name){
         int i = users.indexOf(name);
         if(i == -1){
@@ -134,11 +148,19 @@ public class ChatRoom implements Serializable {
         RMQTools.sendMessage(channel,QUEUE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
+    /**
+     * Enlève l'utilisateur de la liste des users connecté
+     * @param utilisateur à deconnecter
+     * @return
+     */
     private TimerTask AutoUnregister_User(String name){
         Unregister_User(name);
         return null;
     }
 
+    /**
+     * Previens le hub que la room est toujours fonctionel
+     */
     private void NotifyHubAlive(){
         RMQTools.sendMessage(channel,QUEUE_HUB_ROOM,name);
     }

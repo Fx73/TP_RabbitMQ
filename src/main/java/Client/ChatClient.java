@@ -56,7 +56,11 @@ public class ChatClient {
 		rooms.add(r);
 	}
 
-
+/**
+ * Ecoute le contenu d'une room
+ * Ecoute les messages reçus
+ * 
+ */
 	static void UpdateLogs(){
 		while (true) {
 			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_LOGS_OUT);
@@ -73,7 +77,11 @@ public class ChatClient {
 		}
 	}
 
-
+/**
+ * Ecoute le contenu d'une room
+ * La liste des users connectés (connexion deconnexion)
+ * 
+ */
 	static void UpdateUsers(){
 		System.out.println("Listening for user list ...");
 		while (threadflag) {
@@ -96,6 +104,10 @@ public class ChatClient {
 		threadflag = true;
 	}
 
+	/**
+	 * Ecoute les changements sur la liste des rooms envoyé par le hub
+	 * 
+	 */
 	static void UpdateRooms(){
         System.out.println("Listening for room list ...");
         while (true) {
@@ -136,6 +148,10 @@ public class ChatClient {
 		RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,text);
 	}
 
+	/**
+	 * Se connecter à une room spécifique
+	 * @param Nom de la room
+	 */
 	static void Select_Room(String name) {
 		String username = Frame.getWindow().user.getText();
 
@@ -166,6 +182,9 @@ public class ChatClient {
 		Update();
 	}
 
+	/**
+	 * Demande la création d'une room
+	 */
 	static void Create_Room() {
         String result = (String)JOptionPane.showInputDialog(
                 Frame.getWindow(),
@@ -184,6 +203,9 @@ public class ChatClient {
 		Select_Room(result);
 	}
 
+	/**
+	 * Demande la supression d'une room
+	 */
 	static void Delete_Room() {
 		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+c_room.name);
 	}
