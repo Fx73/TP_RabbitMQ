@@ -179,15 +179,8 @@ public class ChatClient {
 	 * Demande la création d'une room
 	 */
 	static void Create_Room() {
-        String result = (String)JOptionPane.showInputDialog(
-                Frame.getWindow(),
-                "Select the room name",
-                "New Room",
-                JOptionPane.PLAIN_MESSAGE,
-                null,
-                null,
-				""
-        );
+		String result = Frame.getWindow().AskForName("New Room","Select the room name");
+
         if(result == null)
             return;
 

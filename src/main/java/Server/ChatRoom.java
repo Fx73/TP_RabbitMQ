@@ -90,11 +90,19 @@ public class ChatRoom implements Serializable {
      * Attend les messages des users de la room
      */
     public void WaitForMessages(){
-            byte[] message = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_LOGS_IN);
-            if(message!= null) {
-                String[] m = new String(message).split("<-NAME-SEPARATOR->");
-                Say(m[0], m[1]);
-            }
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), "UTF-8");
+            String[] m = message.split("<-NAME-SEPARATOR->");
+            DebugPrint("Message recu de " + m[0] + " ("+m[1].length()+" chars)");
+            Say(m[0], m[1]);
+        };
+        try {
+            channel.basicConsume(QUEUE_ROOM_USERS_IN, true, deliverCallback, consumerTag -> {
+            });
+        }catch (Exception e){
+            System.out.println("Erreur de consommation : " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     public void Say(String name, String s) {

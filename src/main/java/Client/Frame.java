@@ -159,6 +159,31 @@ class Frame extends JFrame {
         pack();
     }
 
+
+    public String AskForName(String title, String message){
+        String result = (String)JOptionPane.showInputDialog(
+                window,
+                message,
+                title,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                ""
+        );
+        return result;
+    }
+    public String AskForName(String title, String message,String initial){
+        String result = (String)JOptionPane.showInputDialog(
+                window,
+                message,
+                title,
+                JOptionPane.PLAIN_MESSAGE,
+                null,
+                null,
+                initial
+        );
+        return result;
+    }
     MouseListener nommouselistener = new MouseListener() {
         @Override
         public void mouseClicked(MouseEvent e) {
