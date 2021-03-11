@@ -66,8 +66,6 @@ public class ChatRoom implements Serializable {
      * Attend la connexion/deconexion des users sur cette room
      */
     public void WaitForUsers(){
-        while (true) {
-
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
                 if(message.startsWith("+")){
@@ -85,21 +83,18 @@ public class ChatRoom implements Serializable {
                 System.out.println("Erreur de consommation : " + e.getMessage());
                 e.printStackTrace();
             }
-        }
+
     }
 
     /**
      * Attend les messages des users de la room
      */
     public void WaitForMessages(){
-        while (true) {
             byte[] message = RMQTools.receiveMessageWaited(channel, QUEUE_ROOM_LOGS_IN);
             if(message!= null) {
                 String[] m = new String(message).split("<-NAME-SEPARATOR->");
                 Say(m[0], m[1]);
             }
-            System.out.println("Say");
-        }
     }
 
     public void Say(String name, String s) {

@@ -50,17 +50,15 @@ public class ChatHub {
     public void WaitForMessages(){
         System.out.println("Waiting for clients ...");
 
-        while (true) {
-
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
                 if(message.equals("UPDATE")){
                     DebugPrint("Received Update Demand");
                     PublishChatRoomList();
                 }else if(message.startsWith("CREATE ")) {
-                    //TODO:traiter le message
+                    NewChatRoom(message.substring("CREATE ".length()));
                 }else if (message.startsWith("DELETE ")){
-                    //TODO:traiter le message
+                    RemoveChatRoom(message.substring("DELETE ".length()));
                 }
             };
             try {
@@ -70,7 +68,7 @@ public class ChatHub {
                 System.out.println("Erreur de consommation : " + e.getMessage());
                 e.printStackTrace();
             }
-        }
+
     }
     
     
@@ -80,7 +78,6 @@ public class ChatHub {
  */
     public void WaitForRooms(){
         System.out.println("Waiting for rooms notifications ...");
-        while (true) {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 DebugPrint("Received notif from room " + message);
@@ -109,7 +106,6 @@ public class ChatHub {
                 System.out.println("Erreur de consommation : " + e.getMessage());
                 e.printStackTrace();
             }
-        }
     }
 
     /**
