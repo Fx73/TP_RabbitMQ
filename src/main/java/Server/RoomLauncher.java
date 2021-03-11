@@ -45,10 +45,12 @@ public class RoomLauncher {
             System.out.println("Save File found");
         } catch (IOException | ClassNotFoundException e) {
             System.out.println("No save found");
+            e.printStackTrace();
             return false;
         }
         return true;
     }
+
 
     static void Save(String name){
         try {

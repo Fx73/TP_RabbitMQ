@@ -5,7 +5,7 @@ import java.util.ArrayList;
 
 public class ChatLog implements Serializable {
     public int MAXSIZE;
-    private ArrayList<Message> log = new ArrayList<>();
+    private final ArrayList<Message> log = new ArrayList<>();
 
     ChatLog(int maxsize){
         MAXSIZE = maxsize;

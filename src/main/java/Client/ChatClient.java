@@ -167,6 +167,7 @@ public class ChatClient {
 
 		if(c_room != null){
 			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"-"+username);
+			//TODO : Fermer les listeners
 			try {
 				channel.basicCancel(logtag);
 				channel.basicCancel(usertag);
