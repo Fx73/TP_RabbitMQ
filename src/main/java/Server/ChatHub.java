@@ -44,8 +44,6 @@ public class ChatHub {
     public void WaitForMessages(){
         System.out.println("Waiting for clients ...");
 
-        while (true) {
-
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), "UTF-8");
                 if(message.equals("UPDATE")){
@@ -64,12 +62,11 @@ public class ChatHub {
                 System.out.println("Erreur de consommation : " + e.getMessage());
                 e.printStackTrace();
             }
-        }
+
     }
 
     public void WaitForRooms(){
         System.out.println("Waiting for rooms notifications ...");
-        while (true) {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 DebugPrint("Received notif from room " + message);
@@ -98,7 +95,6 @@ public class ChatHub {
                 System.out.println("Erreur de consommation : " + e.getMessage());
                 e.printStackTrace();
             }
-        }
     }
 
     public void PublishChatRoomList() {
