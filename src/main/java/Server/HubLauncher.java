@@ -8,7 +8,7 @@ import java.util.Arrays;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class ChatServer {
+public class HubLauncher {
 	static ChatHub hub;
 
 

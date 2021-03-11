@@ -52,9 +52,9 @@ public class ChatHub {
                     DebugPrint("Received Update Demand");
                     PublishChatRoomList();
                 }else if(message.startsWith("CREATE ")) {
-                    //TODO:traiter le message
+                    NewChatRoom(message.substring("CREATE ".length()));
                 }else if (message.startsWith("DELETE ")){
-                    //TODO:traiter le message
+                    RemoveChatRoom(message.substring("DELETE ".length()));
                 }
             };
             try {
