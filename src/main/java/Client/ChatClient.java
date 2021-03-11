@@ -5,6 +5,7 @@ import javax.swing.border.EmptyBorder;
 import java.awt.*;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 
@@ -22,6 +23,8 @@ public class ChatClient {
 	final static String EXCHANGE_HUB_SERVER = "QUEUE_HUB_SERVER"; //Le client se lie ici
 	static String QUEUE_HUB_SERVER;					// pour pouvoir écouter ici
 	final static String QUEUE_HUB_CLIENT = "QUEUE_HUB_CLIENT"; //Le client emet ici
+
+	static String usertag,logtag;
 
 	static RoomId c_room = null;
 
@@ -61,17 +64,19 @@ public class ChatClient {
  * 
  */
 	static void UpdateLogs(){
-			byte[] message = RMQTools.receiveMessage(channel,c_room.QUEUE_ROOM_LOGS_OUT);
-
-			if (message != null) {
-				Frame.getWindow().set_chattextarea(new String(message));
-				Update();
-			}
-			try {
-				TimeUnit.MILLISECONDS.sleep(100);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
+		System.out.println("Listening for logs ");
+		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+			String message = new String(delivery.getBody(), "UTF-8");
+			Frame.getWindow().set_chattextarea(message);
+			Update();
+		};
+		try {
+			logtag = channel.basicConsume(c_room.QUEUE_ROOM_USERS_OUT, true, deliverCallback, consumerTag -> {});
+		}catch (Exception e){
+			System.out.println("Erreur de consommation : " + e.getMessage());
+			e.printStackTrace();
+			return;
+		}
 	}
 
 /**
@@ -89,7 +94,7 @@ public class ChatClient {
 				Update();
 			};
 			try {
-				channel.basicConsume(c_room.QUEUE_ROOM_USERS_OUT, true, deliverCallback, consumerTag -> {});
+				usertag = channel.basicConsume(c_room.QUEUE_ROOM_USERS_OUT, true, deliverCallback, consumerTag -> {});
 			}catch (Exception e){
 				System.out.println("Erreur de consommation : " + e.getMessage());
 				e.printStackTrace();
@@ -151,6 +156,13 @@ public class ChatClient {
 
 		if(c_room != null){
 			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"-"+username);
+			try {
+				channel.basicCancel(logtag);
+				channel.basicCancel(usertag);
+			} catch (IOException e) {
+				System.out.println("Erreur de fermeture du listener");
+				e.printStackTrace();
+			}
 		}
 
 		c_room = RoomId.findByName(rooms,name);
