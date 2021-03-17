@@ -4,12 +4,16 @@ import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
+import java.io.BufferedReader;
+import java.io.File;
 import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
 import java.rmi.NotBoundException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.Executors;
 
 import static Tools.SerializationTools.myStringParser;
 import static Tools.RMQTools.DebugPrint;
@@ -150,7 +154,19 @@ public class ChatHub {
             return;
         }
 
-        //Todo: Lancer un nouveau programme
+        String cmd ="java -Dfile.encoding=UTF-8 -classpath target\\classes;lib\\amqp-client-5.11.0.jar;lib\\slf4j-api-1.7.30.jar Server.RoomLauncher " + name;
+        try {
+            ProcessBuilder builder = new ProcessBuilder();
+            builder.directory(new File(System.getProperty("user.dir")));
+            if (System.getProperty("os.name").toLowerCase().startsWith("windows")) {
+                builder.command("cmd.exe", "/c", cmd);
+            } else {
+                builder.command("sh", "-c", cmd);
+            }
+            builder.start();
+        } catch (IOException e){
+            System.out.println("Echec d'instanciation de la room");
+        }
 
 
         Timer timer = new Timer(name);
