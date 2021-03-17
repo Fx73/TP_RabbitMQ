@@ -26,7 +26,7 @@ public class RoomLauncher {
             }
         }, 10000, 10000);
 
-
+        new Thread(()-> room.WaitForHub()).start();
         new Thread(() -> room.WaitForUsers()).start();
         room.WaitForMessages();
 

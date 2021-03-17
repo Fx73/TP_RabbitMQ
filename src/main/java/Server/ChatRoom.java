@@ -5,6 +5,7 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
 import java.io.IOException;
+import java.io.Serial;
 import java.io.Serializable;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -18,7 +19,9 @@ public class ChatRoom implements Serializable {
     String name;
     ChatLog chatlog;
 
-    final String QUEUE_HUB_ROOM = "QUEUE_HUB_ROOM"; //Room emet au hub ici
+    final String QUEUE_ROOM_HUB = "QUEUE_ROOM_HUB"; //Room emet au hub ici
+    final String EXCHANGE_HUB_ROOM = "QUEUE_HUB_ROOM"; //Room ecoute le hub ici
+    String QUEUE_HUB_ROOM;
     String EXCHANGE_ROOM_LOGS_OUT; //Room emet ici
     String EXCHANGE_ROOM_USERS_OUT; //Room emet ici
     String QUEUE_ROOM_LOGS_IN; //Room ecoute ici
@@ -52,7 +55,8 @@ public class ChatRoom implements Serializable {
 
 
         // Set up a timer for Hub Notification
-        RMQTools.addQueue(channel, QUEUE_HUB_ROOM);
+        QUEUE_HUB_ROOM = RMQTools.addQueueBound(channel,EXCHANGE_HUB_ROOM);
+        RMQTools.addQueue(channel, QUEUE_ROOM_HUB);
         Timer timer = new Timer();
         timer.scheduleAtFixedRate(new TimerTask() {
             public void run() {
@@ -66,9 +70,41 @@ public class ChatRoom implements Serializable {
     /**
      * Attend la connexion/deconexion des users sur cette room
      */
+    public void WaitForHub() {
+        System.out.println("Waiting for hub notifications ...");
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+            String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
+            DebugPrint("Received notif from hub : " + message);
+
+            if(message.startsWith("ALIVE")){
+                //TODO: Mettre un timer pour relancer le hub ?
+            }else if (message.startsWith("SHUTDOWN")){
+                if(message.substring("SHUTDOWN ".length()).equals(name)){
+                    Say("SYSTEM","LA ROOM VA SE CLORE");
+                    System.exit(0);
+                }
+
+            }
+
+
+        };
+        try {
+            channel.basicConsume(QUEUE_HUB_ROOM, true, deliverCallback, consumerTag -> {
+            });
+        }catch (Exception e){
+            System.out.println("Erreur de consommation : " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
+
+    /**
+     * Attend la connexion/deconexion des users sur cette room
+     */
     public void WaitForUsers(){
-            DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-                String message = new String(delivery.getBody(), "UTF-8");
+        System.out.println("Waiting for users ...");
+        DeliverCallback deliverCallback = (consumerTag, delivery) -> {
+                String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 if(message.startsWith("+")){
                     DebugPrint("Received user :"+message.substring(1));
                     Register_User(message.substring(1));
@@ -91,6 +127,7 @@ public class ChatRoom implements Serializable {
      * Attend les messages des users de la room
      */
     public void WaitForMessages(){
+        System.out.println("Waiting for messages ...");
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
             try{
@@ -110,15 +147,20 @@ public class ChatRoom implements Serializable {
         }
     }
 
+
     public void Say(String name, String s) {
         chatlog.Add_log(name,s);
         System.out.println(chatlog.Get_Logs());
+        PublishLogs();
+    }
+
+    public void PublishLogs(){
         RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_LOGS_OUT, chatlog.Get_Logs());
     }
 
     /**
      * Enregistre un utilisateur dans la room
-     * @param Nom de l'user
+     * @param name Nom de l'user
      */
     public void Register_User(String name){
         Timer timer = new Timer(name);
@@ -135,6 +177,7 @@ public class ChatRoom implements Serializable {
         else{
             users.add(name);
             timers.add(timer);
+            PublishLogs();
         }
 
         RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
@@ -142,7 +185,7 @@ public class ChatRoom implements Serializable {
 
     /**
      * Deconnecte un utilisateur de la room
-     * @param Nom de l'utilisateur
+     * @param name Nom de l'utilisateur
      */
     public void Unregister_User(String name){
         int i = users.indexOf(name);
@@ -160,21 +203,20 @@ public class ChatRoom implements Serializable {
 
     /**
      * Enlève l'utilisateur de la liste des users connecté
-     * @param utilisateur à deconnecter
-     * @return
+     * @param name utilisateur à deconnecter
      */
-    private TimerTask AutoUnregister_User(String name){
+    private void AutoUnregister_User(String name){
         Unregister_User(name);
-        return null;
     }
 
     /**
      * Previens le hub que la room est toujours fonctionel
      */
     private void NotifyHubAlive(){
-        RMQTools.sendMessage(channel,QUEUE_HUB_ROOM,name);
+        RMQTools.sendMessage(channel,QUEUE_ROOM_HUB,name);
     }
 
+    @Serial
     private void readObject(java.io.ObjectInputStream in) throws IOException, ClassNotFoundException {
         in.defaultReadObject();
         users = new ArrayList<>();
