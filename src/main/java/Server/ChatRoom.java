@@ -16,16 +16,14 @@ import static Tools.SerializationTools.myStringParser;
 import static Tools.RMQTools.DebugPrint;
 
 public class ChatRoom implements Serializable {
-    String name;
+    RoomId roomId;
     ChatLog chatlog;
 
     final String QUEUE_ROOM_HUB = "QUEUE_ROOM_HUB"; //Room emet au hub ici
     final String EXCHANGE_HUB_ROOM = "QUEUE_HUB_ROOM"; //Room ecoute le hub ici
+
     String QUEUE_HUB_ROOM;
-    String EXCHANGE_ROOM_LOGS_OUT; //Room emet ici
-    String EXCHANGE_ROOM_USERS_OUT; //Room emet ici
-    String QUEUE_ROOM_LOGS_IN; //Room ecoute ici
-    String QUEUE_ROOM_USERS_IN; //Room ecoute ici
+
 
     protected transient Channel channel;
 
@@ -33,11 +31,7 @@ public class ChatRoom implements Serializable {
     transient ArrayList<Timer> timers = new ArrayList<>();
 
     ChatRoom(String name){
-        this.name = name;
-        QUEUE_ROOM_USERS_IN = name + "_USERS_IN";
-        QUEUE_ROOM_LOGS_IN = name + "_LOGS_IN";
-        EXCHANGE_ROOM_USERS_OUT = name + "_USERS_OUT";
-        EXCHANGE_ROOM_LOGS_OUT = name + "_LOGS_OUT";
+        roomId = new RoomId(name);
         chatlog = new ChatLog(100);
     }
 
@@ -48,10 +42,10 @@ public class ChatRoom implements Serializable {
             return false;
         }
 
-        RMQTools.addExchange(channel, EXCHANGE_ROOM_USERS_OUT);
-        RMQTools.addExchange(channel, EXCHANGE_ROOM_LOGS_OUT);
-        RMQTools.addQueue(channel, QUEUE_ROOM_USERS_IN);
-        RMQTools.addQueue(channel, QUEUE_ROOM_LOGS_IN);
+        RMQTools.addExchange(channel, roomId.EXCHANGE_ROOM_USERS_OUT);
+        RMQTools.addExchange(channel, roomId.EXCHANGE_ROOM_LOGS_OUT);
+        RMQTools.addQueue(channel, roomId.QUEUE_ROOM_USERS_IN);
+        RMQTools.addQueue(channel, roomId.QUEUE_ROOM_LOGS_IN);
 
 
         // Set up a timer for Hub Notification
@@ -79,7 +73,7 @@ public class ChatRoom implements Serializable {
             if(message.startsWith("ALIVE")){
                 //TODO: Mettre un timer pour relancer le hub ?
             }else if (message.startsWith("SHUTDOWN")){
-                if(message.substring("SHUTDOWN ".length()).equals(name)){
+                if(message.substring("SHUTDOWN ".length()).equals(roomId.name)){
                     Say("SYSTEM","LA ROOM VA SE CLORE");
                     System.exit(0);
                 }
@@ -114,7 +108,7 @@ public class ChatRoom implements Serializable {
                 }
             };
             try {
-                channel.basicConsume(QUEUE_ROOM_USERS_IN, true, deliverCallback, consumerTag -> {
+                channel.basicConsume(roomId.QUEUE_ROOM_USERS_IN, true, deliverCallback, consumerTag -> {
                 });
             }catch (Exception e){
                 System.out.println("Erreur de consommation : " + e.getMessage());
@@ -139,7 +133,7 @@ public class ChatRoom implements Serializable {
             }
         };
         try {
-            channel.basicConsume(QUEUE_ROOM_LOGS_IN, true, deliverCallback, consumerTag -> {
+            channel.basicConsume(roomId.QUEUE_ROOM_LOGS_IN, true, deliverCallback, consumerTag -> {
             });
         }catch (Exception e){
             System.out.println("Erreur de consommation : " + e.getMessage());
@@ -155,7 +149,7 @@ public class ChatRoom implements Serializable {
     }
 
     public void PublishLogs(){
-        RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_LOGS_OUT, chatlog.Get_Logs());
+        RMQTools.sendMessageExchanged(channel, roomId.EXCHANGE_ROOM_LOGS_OUT, chatlog.Get_Logs());
     }
 
     /**
@@ -180,7 +174,7 @@ public class ChatRoom implements Serializable {
             PublishLogs();
         }
 
-        RMQTools.sendMessageExchanged(channel, EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
+        RMQTools.sendMessageExchanged(channel, roomId.EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     /**
@@ -198,7 +192,7 @@ public class ChatRoom implements Serializable {
         timers.remove(i);
         users.remove(name);
 
-        RMQTools.sendMessage(channel, EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
+        RMQTools.sendMessage(channel, roomId.EXCHANGE_ROOM_USERS_OUT, myStringParser(users.toArray(new String[0])));
     }
 
     /**
@@ -213,7 +207,7 @@ public class ChatRoom implements Serializable {
      * Previens le hub que la room est toujours fonctionel
      */
     private void NotifyHubAlive(){
-        RMQTools.sendMessage(channel,QUEUE_ROOM_HUB,name);
+        RMQTools.sendMessage(channel,QUEUE_ROOM_HUB,roomId.name);
     }
 
     @Serial

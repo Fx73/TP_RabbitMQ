@@ -4,16 +4,12 @@ import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
-import java.io.BufferedReader;
 import java.io.File;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.charset.StandardCharsets;
-import java.rmi.NotBoundException;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
-import java.util.concurrent.Executors;
 
 import static Tools.SerializationTools.myStringParser;
 import static Tools.RMQTools.DebugPrint;
@@ -25,8 +21,6 @@ public class ChatHub {
     final String QUEUE_ROOM_HUB = "QUEUE_ROOM_HUB"; //Server ecoute les rooms ici
 
     protected Channel channel;
-
-
 
     final ArrayList<String> namelist = new ArrayList<>();
     transient ArrayList<Timer> timers = new ArrayList<>();
@@ -58,8 +52,8 @@ public class ChatHub {
 
     /**
      * Ecoute les clients
-     * Update : Liste des rooms
-     * Create : Créer une nouvelle salle
+     * UPDATE : Liste des rooms
+     * CREATE : Créer une nouvelle salle
      * DELETE : Supprimer une salle
      */
     public void WaitForMessages(){
@@ -130,20 +124,7 @@ public class ChatHub {
          RMQTools.sendMessageExchanged(channel,QUEUE_HUB_SERVER, myStringParser(namelist.toArray(new String[0])));
     }
 
-/**
- * Envois l'adresse d'une room
- */
-    public void PublishRoomURI(String name, String private_queue) throws NotBoundException {
-        if(!namelist.contains(name))
-            throw new NotBoundException("There is no room with this name : " + name);
-        try {
-            RMQTools.addQueue(channel,private_queue);
-            channel.basicPublish("", private_queue, null,("Room_"+name+"_Service").getBytes());
-            RMQTools.deleteQueue(channel,private_queue);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
+
 
 /**
  * Créer une chatroom

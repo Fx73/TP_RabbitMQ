@@ -7,7 +7,7 @@ import java.nio.charset.StandardCharsets;
 public class TestProducer {
     private final static String QUEUE_NAME = "hello";
 
-    public static void omain(String[] argv) throws Exception {
+    public static void main(String[] argv) throws Exception {
         Channel channel = RMQTools.channelCreatorLocal();
 
 

@@ -1,17 +1,13 @@
 package Client;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
-import java.awt.*;
-import java.awt.event.MouseEvent;
-import java.awt.event.MouseListener;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.*;
 
 import java.util.Timer;
-import java.util.concurrent.TimeUnit;
 
+import Server.RoomId;
 import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
@@ -28,9 +24,7 @@ public class ChatClient {
 
 	static RoomId c_room = null;
 
-	static ArrayList<RoomId> rooms = new ArrayList<>();
-
-	public static void main(String[] args) throws InterruptedException {
+	public static void main(String[] args)  {
 		String host;
 		if (args.length < 1)
 			host = "localhost";
@@ -54,13 +48,6 @@ public class ChatClient {
 			}
 		}, 20000, 20000);
 
-		//Debug
-		RoomId r = new RoomId("A");
-		r.QUEUE_ROOM_LOGS_IN="A_LOGS_IN";
-		r.EXCHANGE_ROOM_LOGS_OUT="A_LOGS_OUT";
-		r.QUEUE_ROOM_USERS_IN = "A_USERS_IN";
-		r.EXCHANGE_ROOM_USERS_OUT = "A_USERS_OUT";
-		rooms.add(r);
 	}
 
 /**
@@ -71,7 +58,7 @@ public class ChatClient {
 	static void UpdateLogs(){
 		System.out.println(" -- Listening for logs ");
 		DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-			String message = new String(delivery.getBody(), "UTF-8");
+			String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
 			Frame.getWindow().set_chattextarea(message);
 			Update();
 		};
@@ -80,7 +67,6 @@ public class ChatClient {
 		}catch (Exception e){
 			System.out.println("Erreur de consommation : " + e.getMessage());
 			e.printStackTrace();
-			return;
 		}
 	}
 
@@ -92,7 +78,7 @@ public class ChatClient {
 	static void UpdateUsers(){
 		System.out.println(" -- Listening for user list ...");
 			DeliverCallback deliverCallback = (consumerTag, delivery) -> {
-				String message = new String(delivery.getBody(), "UTF-8");
+				String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
 				DebugPrint("Received users from Room :\n" + message);
 				String[] m = Tools.SerializationTools.myStringUnparser(message);
 				Frame.getWindow().UpdateNames(m);
@@ -103,7 +89,6 @@ public class ChatClient {
 			}catch (Exception e){
 				System.out.println("Erreur de consommation : " + e.getMessage());
 				e.printStackTrace();
-				return;
 			}
 
 	}
@@ -120,6 +105,7 @@ public class ChatClient {
 				String[] m = Tools.SerializationTools.myStringUnparser(message);
 				Frame.getWindow().UpdateButtons(m);
 				Update();
+
 			};
 			try {
 				channel.basicConsume(QUEUE_HUB_SERVER, true, deliverCallback, consumerTag -> {});
@@ -177,27 +163,21 @@ public class ChatClient {
 			}
 		}
 
-		c_room = RoomId.findByName(rooms,name);
+		c_room = new RoomId(name);
 
-		if(c_room == null){
-			//TODO: Appel du hub
-			System.out.println("A implementer");
+
+		if(c_room.QUEUE_ROOM_LOGS_OUT == null) {
+			RMQTools.addQueue(channel, c_room.QUEUE_ROOM_USERS_IN);
+			c_room.QUEUE_ROOM_USERS_OUT = RMQTools.addQueueBound(channel, c_room.EXCHANGE_ROOM_USERS_OUT);
+			RMQTools.addQueue(channel, c_room.QUEUE_ROOM_LOGS_IN);
+			c_room.QUEUE_ROOM_LOGS_OUT = RMQTools.addQueueBound(channel, c_room.EXCHANGE_ROOM_LOGS_OUT);
 		}
-
-		if(c_room != null){
-			if(c_room.QUEUE_ROOM_LOGS_OUT == null) {
-				RMQTools.addQueue(channel, c_room.QUEUE_ROOM_USERS_IN);
-				c_room.QUEUE_ROOM_USERS_OUT = RMQTools.addQueueBound(channel, c_room.EXCHANGE_ROOM_USERS_OUT);
-				RMQTools.addQueue(channel, c_room.QUEUE_ROOM_LOGS_IN);
-				c_room.QUEUE_ROOM_LOGS_OUT = RMQTools.addQueueBound(channel, c_room.EXCHANGE_ROOM_LOGS_OUT);
-			}
-			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+username);
-			new Thread(ChatClient::UpdateUsers).start();
-			new Thread(ChatClient::UpdateLogs).start();
-		}
-
+		RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+username);
+		new Thread(ChatClient::UpdateUsers).start();
+		new Thread(ChatClient::UpdateLogs).start();
 		Update();
 	}
+
 
 	/**
 	 * Demande la création d'une room
@@ -218,21 +198,6 @@ public class ChatClient {
 	 */
 	static void Delete_Room() {
 		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+c_room.name);
-	}
-}
-class RoomId{
-	String name;
-	String EXCHANGE_ROOM_LOGS_OUT ; //Server emet ici
-	String QUEUE_ROOM_LOGS_OUT = null; //Client ecoute ici
-	String EXCHANGE_ROOM_USERS_OUT; //Server emet ici
-	String QUEUE_ROOM_USERS_OUT = null; //Client ecoute ici
-	String QUEUE_ROOM_LOGS_IN; //Client emet ici
-	String QUEUE_ROOM_USERS_IN; //Client emet ici
-	public RoomId(String name){
-		this.name = name;
-	}
-	public static RoomId findByName(Collection<RoomId> listCarnet, String nameIsIn) {
-		return listCarnet.stream().filter(carnet -> nameIsIn.equals(carnet.name)).findFirst().orElse(null);
 	}
 }
 
