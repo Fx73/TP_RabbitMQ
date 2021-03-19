@@ -1,6 +1,7 @@
 package Server;
 
 import Tools.RMQTools;
+import Tools.SerializationTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
@@ -11,6 +12,7 @@ import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static Tools.SerializationTools.SEPARATOR;
 import static Tools.SerializationTools.myStringParser;
 import static Tools.RMQTools.DebugPrint;
 
@@ -62,12 +64,18 @@ public class ChatHub {
             DeliverCallback deliverCallback = (consumerTag, delivery) -> {
                 String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
                 if(message.equals("UPDATE")){
-                    DebugPrint("Received Update Demand");
+                    DebugPrint("Received UPDATE Demand");
                     PublishChatRoomList();
                 }else if(message.startsWith("CREATE ")) {
-                    NewChatRoom(message.substring("CREATE ".length()));
+                    String[] m=message.substring("CREATE ".length()).split(SEPARATOR);
+                    DebugPrint("Received CREATE Demand from " + m[0] + " of " + m[1]);
+                    NewChatRoom(m[1],m[0]);
                 }else if (message.startsWith("DELETE ")){
-                    RemoveChatRoom(message.substring("DELETE ".length()));
+                    String[] m=message.substring("DELETE ".length()).split(SEPARATOR);
+                    DebugPrint("Received DELETE Demand from " + m[0] + " of " + m[1]);
+                    RemoveChatRoom(m[1],m[0]);
+                }else{
+                    DebugPrint("Received Nnknow Demand : " + message);
                 }
             };
             try {
@@ -129,13 +137,13 @@ public class ChatHub {
 /**
  * Créer une chatroom
  */
-    public void NewChatRoom(String name) {
+    public void NewChatRoom(String name, String user) {
         if(namelist.contains(name)){
             System.out.println("A room already exists with name : " + name);
             return;
         }
 
-        String cmd ="java -Dfile.encoding=UTF-8 -classpath target\\classes;lib\\amqp-client-5.11.0.jar;lib\\slf4j-api-1.7.30.jar Server.RoomLauncher " + name;
+        String cmd ="java -Dfile.encoding=UTF-8 -classpath target\\classes;lib\\amqp-client-5.11.0.jar;lib\\slf4j-api-1.7.30.jar Server.RoomLauncher " + name +" "+ user;
         try {
             ProcessBuilder builder = new ProcessBuilder();
             builder.directory(new File(System.getProperty("user.dir")));
@@ -168,8 +176,8 @@ public class ChatHub {
  * Supprime une room
  * @param name Nom de la room
  */
-    public void RemoveChatRoom(String name) {
-        RMQTools.sendMessageExchanged(channel,QUEUE_HUB_ROOM,"SHUTDOWN "+name );
+    public void RemoveChatRoom(String name, String user) {
+        RMQTools.sendMessageExchanged(channel,QUEUE_HUB_ROOM,"SHUTDOWN "+name + SEPARATOR + user);
 
         timers.get(namelist.indexOf(name)).cancel();
         timers.remove(namelist.indexOf(name));
@@ -185,7 +193,7 @@ public class ChatHub {
     void Relaunch_Room(String name){
         timers.remove(namelist.indexOf(name));
         namelist.remove(name);
-        NewChatRoom(name);
+        NewChatRoom(name, "System");
     }
 
     /**

@@ -4,18 +4,18 @@ import Tools.RMQTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
-import java.io.IOException;
-import java.io.Serial;
-import java.io.Serializable;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Timer;
 import java.util.TimerTask;
 
+import static Tools.SerializationTools.SEPARATOR;
 import static Tools.SerializationTools.myStringParser;
 import static Tools.RMQTools.DebugPrint;
 
 public class ChatRoom implements Serializable {
+    String owner;
     RoomId roomId;
     ChatLog chatlog;
 
@@ -30,7 +30,8 @@ public class ChatRoom implements Serializable {
     transient ArrayList<String> users = new ArrayList<>();
     transient ArrayList<Timer> timers = new ArrayList<>();
 
-    ChatRoom(String name){
+    ChatRoom(String name, String user){
+        owner = user;
         roomId = new RoomId(name);
         chatlog = new ChatLog(100);
     }
@@ -58,6 +59,7 @@ public class ChatRoom implements Serializable {
             }
         }, 2000, 10000);
 
+        Say("SYSTEM", "- Salle créée par "+ owner +" -");
         return true;
     }
 
@@ -73,8 +75,11 @@ public class ChatRoom implements Serializable {
             if(message.startsWith("ALIVE")){
                 //TODO: Mettre un timer pour relancer le hub ?
             }else if (message.startsWith("SHUTDOWN")){
-                if(message.substring("SHUTDOWN ".length()).equals(roomId.name)){
-                    Say("SYSTEM","LA ROOM VA SE CLORE");
+                String[] m = message.substring("SHUTDOWN ".length()).split(SEPARATOR);
+                if(m[0].equals(roomId.name)){
+                    Say("SYSTEM", m[1]+" a demandé la fermeture de la salle "+ roomId.name+" !\n A bientot !");
+                    if(new File("roomsave_"+roomId.name+".txt").delete())
+                        DebugPrint("Save deleted");
                     System.exit(0);
                 }
 
@@ -125,7 +130,7 @@ public class ChatRoom implements Serializable {
         DeliverCallback deliverCallback = (consumerTag, delivery) -> {
             String message = new String(delivery.getBody(), StandardCharsets.UTF_8);
             try{
-                String[] m = message.split("<-NAME-SEPARATOR->");
+                String[] m = message.split(SEPARATOR);
                 DebugPrint("Message recu de " + m[0] + " ("+m[1].length()+" chars)");
                 Say(m[0], m[1]);
             }catch (Exception e){
