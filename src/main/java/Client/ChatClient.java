@@ -9,10 +9,12 @@ import java.util.Timer;
 
 import Server.RoomId;
 import Tools.RMQTools;
+import Tools.SerializationTools;
 import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.DeliverCallback;
 
 import static Tools.RMQTools.DebugPrint;
+import static Tools.SerializationTools.SEPARATOR;
 
 public class ChatClient {
 	protected static Channel channel;
@@ -44,7 +46,7 @@ public class ChatClient {
 		java.util.Timer timer = new Timer();
 		timer.scheduleAtFixedRate(new TimerTask() {
 			public void run() {
-				NotifyRoomAlive();
+				NotifyUserAlive();
 			}
 		}, 20000, 20000);
 
@@ -118,13 +120,8 @@ public class ChatClient {
 	}
 
 
-	static void Update() {
-		Frame.getWindow().revalidate();
-		Frame.getWindow().repaint();
-	}
 
-
-	static void NotifyRoomAlive(){
+	static void NotifyUserAlive(){
 		if(c_room != null)
 			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_USERS_IN,"+"+Frame.getWindow().user.getText());
 	}
@@ -141,7 +138,7 @@ public class ChatClient {
 			return;
 		}
 		if(c_room != null)
-			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,Frame.getWindow().user.getText()+ "<-NAME-SEPARATOR->"+text);
+			RMQTools.sendMessage(channel,c_room.QUEUE_ROOM_LOGS_IN,Frame.getWindow().user.getText()+ SEPARATOR +text);
 	}
 
 	/**
@@ -188,7 +185,7 @@ public class ChatClient {
         if(result == null)
             return;
 
-		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"CREATE "+result);
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"CREATE " +Frame.getWindow().user.getText()+ SEPARATOR + result);
 
 		Select_Room(result);
 	}
@@ -197,7 +194,12 @@ public class ChatClient {
 	 * Demande la supression d'une room
 	 */
 	static void Delete_Room() {
-		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE "+c_room.name);
+		RMQTools.sendMessage(channel,QUEUE_HUB_CLIENT,"DELETE " +Frame.getWindow().user.getText()+ SEPARATOR +c_room.name);
+	}
+
+	static void Update() {
+		Frame.getWindow().revalidate();
+		Frame.getWindow().repaint();
 	}
 }
 

@@ -22,7 +22,7 @@ public class RoomId implements Serializable {
         EXCHANGE_ROOM_LOGS_OUT = name + "_LOGS_OUT";
     }
 
-    
+
       /*
         Les fonctions suivantes ont été faites pour une version plus scalable,
         ou les queues des rooms n'avait pas un nom fixe, et ou le serveur envoyait le RoomId au client

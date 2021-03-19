@@ -8,11 +8,16 @@ public class RoomLauncher {
     static ChatRoom room;
     public static void  main(String [] args){
         if(args.length == 0){
-            System.out.println("You must specify a name");
+            System.out.println("You must specify [name] [+user_owner]");
             return;
         }
+        String owner = "";
+        if(args.length >= 2){
+            owner = args[1];
+        }
+
         if(!Load(args[0]))
-            room = new ChatRoom(args[0]);
+            room = new ChatRoom(args[0],owner);
 
         if(!room.Init())
             return ;
